@@ -1,26 +1,22 @@
-// Filename: imageFixHiddenColor.cxx
-// Created by:  drose (13Mar03)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file imageFixHiddenColor.cxx
+ * @author drose
+ * @date 2003-03-13
+ */
 
 #include "imageFixHiddenColor.h"
 #include "string_utils.h"
-#include "pystub.h"
 
-////////////////////////////////////////////////////////////////////
-//     Function: ImageFixHiddenColor::Constructor
-//       Access: Public
-//  Description:
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 ImageFixHiddenColor::
 ImageFixHiddenColor() : ImageFilter(true) {
   set_program_brief("change the color of transparent pixels in an image");
@@ -63,18 +59,15 @@ ImageFixHiddenColor() : ImageFilter(true) {
   _max_transparent_alpha = 0.0;
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: ImageFixHiddenColor::run
-//       Access: Public
-//  Description:
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 void ImageFixHiddenColor::
 run() {
   PNMImage alpha_image;
 
   if (_alpha_filename.empty()) {
-    // No separate alpha file is provided; use the base file's alpha
-    // channel.
+    // No separate alpha file is provided; use the base file's alpha channel.
     if (!_image.has_alpha()) {
       nout << "Image does not have an alpha channel.\n";
       exit(1);
@@ -89,8 +82,8 @@ run() {
     }
 
     if (!alpha_image.has_alpha()) {
-      // Copy the grayscale value to the alpha channel for the benefit
-      // of the code below.
+      // Copy the grayscale value to the alpha channel for the benefit of the
+      // code below.
       alpha_image.add_alpha();
       int xi, yi;
       for (yi = 0; yi < alpha_image.get_y_size(); ++yi) {
@@ -149,9 +142,6 @@ run() {
 
 
 int main(int argc, char *argv[]) {
-  // A call to pystub() to force libpystub.so to be linked in.
-  pystub();
-
   ImageFixHiddenColor prog;
   prog.parse_command_line(argc, argv);
   prog.run();

@@ -1,16 +1,15 @@
-// Filename: bulletMultiSphereShape.h
-// Created by:  enn0x (04Jan12)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file bulletMultiSphereShape.h
+ * @author enn0x
+ * @date 2012-01-04
+ */
 
 #ifndef __BULLET_MULTI_SPHERE_SHAPE_H__
 #define __BULLET_MULTI_SPHERE_SHAPE_H__
@@ -23,10 +22,9 @@
 #include "pta_LVecBase3.h"
 #include "pta_stdfloat.h"
 
-////////////////////////////////////////////////////////////////////
-//       Class : BulletMultiSphereShape
-// Description : 
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 class EXPCL_PANDABULLET BulletMultiSphereShape : public BulletShape {
 
 PUBLISHED:
@@ -39,20 +37,23 @@ PUBLISHED:
   INLINE LPoint3 get_sphere_pos(int index) const;
   INLINE PN_stdfloat get_sphere_radius(int index) const;
 
+  MAKE_PROPERTY(sphere_count, get_sphere_count);
+  MAKE_SEQ_PROPERTY(sphere_pos, get_sphere_count, get_sphere_pos);
+  MAKE_SEQ_PROPERTY(sphere_radius, get_sphere_count, get_sphere_radius);
+
 public:
   virtual btCollisionShape *ptr() const;
 
 private:
   btMultiSphereShape *_shape;
 
-////////////////////////////////////////////////////////////////////
 public:
   static TypeHandle get_class_type() {
     return _type_handle;
   }
   static void init_type() {
     BulletShape::init_type();
-    register_type(_type_handle, "BulletMultiSphereShape", 
+    register_type(_type_handle, "BulletMultiSphereShape",
                   BulletShape::get_class_type());
   }
   virtual TypeHandle get_type() const {

@@ -1,9 +1,12 @@
-"""Undocumented Module"""
+"""Contains the BufferViewer class, which is used as a debugging aid
+when debugging render-to-texture effects.  It shows different views at
+the bottom of the screen showing the various render targets."""
 
 __all__ = ['BufferViewer']
 
 from panda3d.core import *
 from direct.task import Task
+from direct.task.TaskManagerGlobal import taskMgr
 from direct.directnotify.DirectNotifyGlobal import *
 from direct.showbase.DirectObject import DirectObject
 import math
@@ -11,7 +14,7 @@ import math
 class BufferViewer(DirectObject):
     notify = directNotify.newCategory('BufferViewer')
 
-    def __init__(self):
+    def __init__(self, win, parent):
         """Access: private.  Constructor."""
         self.enabled = 0
         size = ConfigVariableDouble('buffer-viewer-size', '0 0')
@@ -23,13 +26,14 @@ class BufferViewer(DirectObject):
         self.exclude = "none"
         self.cullbin = "fixed"
         self.cullsort = 10000
-        self.renderParent = render2d
+        self.win = win
+        self.engine = GraphicsEngine.getGlobalPtr()
+        self.renderParent = parent
         self.cards = []
         self.cardindex = 0
         self.cardmaker = CardMaker("cubemaker")
         self.cardmaker.setFrame(-1,1,-1,1)
         self.task = 0
-        self.window = 0
         self.dirty = 1
         self.accept("render-texture-targets-changed", self.refreshReadout)
         if (ConfigVariableBool("show-buffers", 0).getValue()):
@@ -198,7 +202,7 @@ class BufferViewer(DirectObject):
                 win = x.getWindow(iwin)
                 self.analyzeTextureSet(win, set)
         elif (x=="all"):
-            self.analyzeTextureSet(base.graphicsEngine, set)
+            self.analyzeTextureSet(self.engine, set)
         else: return
 
 
@@ -276,11 +280,20 @@ class BufferViewer(DirectObject):
         self.analyzeTextureSet(self.exclude, exclude)
         self.analyzeTextureSet(self.include, include)
 
+        # Use a custom sampler when applying the textures.  This fixes
+        # wrap issues and prevents depth compare on shadow maps.
+        sampler = SamplerState()
+        sampler.setWrapU(SamplerState.WM_clamp)
+        sampler.setWrapV(SamplerState.WM_clamp)
+        sampler.setWrapW(SamplerState.WM_clamp)
+        sampler.setMinfilter(SamplerState.FT_linear)
+        sampler.setMagfilter(SamplerState.FT_nearest)
+
         # Generate a list of cards and the corresponding windows.
         cards = []
         wins = []
-        for iwin in range(base.graphicsEngine.getNumWindows()):
-            win = base.graphicsEngine.getWindow(iwin)
+        for iwin in range(self.engine.getNumWindows()):
+            win = self.engine.getWindow(iwin)
             for itex in range(win.countTextures()):
                 tex = win.getTexture(itex)
                 if (tex in include) and (tex not in exclude):
@@ -288,7 +301,7 @@ class BufferViewer(DirectObject):
                         for face in range(6):
                             self.cardmaker.setUvRangeCube(face)
                             card = NodePath(self.cardmaker.generate())
-                            card.setTexture(tex)
+                            card.setTexture(tex, sampler)
                             cards.append(card)
                     elif (tex.getTextureType() == Texture.TT2dTextureArray):
                         for layer in range(tex.getZSize()):
@@ -299,11 +312,11 @@ class BufferViewer(DirectObject):
                             # the fixed-function pipeline, so we need to
                             # enable the shader generator to view them.
                             card.setShaderAuto()
-                            card.setTexture(tex)
+                            card.setTexture(tex, sampler)
                             cards.append(card)
                     else:
                         card = win.getTextureCard()
-                        card.setTexture(tex)
+                        card.setTexture(tex, sampler)
                         cards.append(card)
                     wins.append(win)
                     exclude[tex] = 1
@@ -358,17 +371,17 @@ class BufferViewer(DirectObject):
         bordersize = 4.0
 
         if (float(self.sizex)==0.0) and (float(self.sizey)==0.0):
-            sizey = int(0.4266666667 * base.win.getYSize())
+            sizey = int(0.4266666667 * self.win.getYSize())
             sizex = (sizey * aspectx) // aspecty
-            v_sizey = (base.win.getYSize() - (rows-1) - (rows*2)) // rows
+            v_sizey = (self.win.getYSize() - (rows-1) - (rows*2)) // rows
             v_sizex = (v_sizey * aspectx) // aspecty
             if (v_sizey < sizey) or (v_sizex < sizex):
                 sizey = v_sizey
                 sizex = v_sizex
-                
+
             adjustment = 2
-            h_sizex = float (base.win.getXSize() - adjustment) / float (cols)
-            
+            h_sizex = float (self.win.getXSize() - adjustment) / float (cols)
+
             h_sizex -= bordersize
             if (h_sizex < 1.0):
                 h_sizex = 1.0
@@ -378,16 +391,16 @@ class BufferViewer(DirectObject):
                 sizey = h_sizey
                 sizex = h_sizex
         else:
-            sizex = int(self.sizex * 0.5 * base.win.getXSize())
-            sizey = int(self.sizey * 0.5 * base.win.getYSize())
+            sizex = int(self.sizex * 0.5 * self.win.getXSize())
+            sizey = int(self.sizey * 0.5 * self.win.getYSize())
             if (sizex == 0): sizex = (sizey*aspectx) // aspecty
             if (sizey == 0): sizey = (sizex*aspecty) // aspectx
 
         # Convert from pixels to render2d-units.
-        fsizex = (2.0 * sizex) / float(base.win.getXSize())        
-        fsizey = (2.0 * sizey) / float(base.win.getYSize())
-        fpixelx = 2.0 / float(base.win.getXSize())
-        fpixely = 2.0 / float(base.win.getYSize())
+        fsizex = (2.0 * sizex) / float(self.win.getXSize())
+        fsizey = (2.0 * sizey) / float(self.win.getYSize())
+        fpixelx = 2.0 / float(self.win.getXSize())
+        fpixely = 2.0 / float(self.win.getYSize())
 
         # Choose directional offsets
         if (self.position == "llcorner"):
@@ -416,9 +429,9 @@ class BufferViewer(DirectObject):
                 index = c + r*cols
                 if (index < ncards):
                     index = (index + self.cardindex) % len(cards)
-                    
+
                     posx = dirx * (1.0 - ((c + 0.5) * (fsizex + fpixelx * bordersize))) - (fpixelx * dirx)
-                    posy = diry * (1.0 - ((r + 0.5) * (fsizey + fpixely * bordersize))) - (fpixely * diry)                    
+                    posy = diry * (1.0 - ((r + 0.5) * (fsizey + fpixely * bordersize))) - (fpixely * diry)
                     placer = NodePath("card-structure")
                     placer.setPos(Point3.rfu(posx, 0, posy))
                     placer.setScale(Vec3.rfu(fsizex*0.5, 1.0, fsizey*0.5))

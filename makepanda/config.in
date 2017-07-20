@@ -41,7 +41,7 @@ framebuffer-software #f
 # consistent with the other framebuffer requirements.
 
 depth-bits 1
-color-bits 1
+color-bits 1 1 1
 alpha-bits 0
 stencil-bits 0
 multisamples 0
@@ -89,7 +89,7 @@ hardware-animated-vertices #f
 
 # Enable the model-cache, but only for models, not textures.
 
-model-cache-dir $HOME/.panda3d/cache
+model-cache-dir $XDG_CACHE_HOME/panda3d
 model-cache-textures #f
 
 # This option specifies the default profiles for Cg shaders.

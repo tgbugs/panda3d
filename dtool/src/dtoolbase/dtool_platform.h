@@ -1,8 +1,4 @@
-/* Filename: dtool_platform.h
- * Created by:  drose (03Aug09)
- *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *
- *
+/**
  * PANDA 3D SOFTWARE
  * Copyright (c) Carnegie Mellon University.  All rights reserved.
  *
@@ -10,7 +6,10 @@
  * license.  You should have received a copy of this license along
  * with this source code in a file named "LICENSE."
  *
- * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
+ * @file dtool_platform.h
+ * @author drose
+ * @date 2009-08-03
+ */
 
 #ifndef DTOOL_PLATFORM_H
 #define DTOOL_PLATFORM_H
@@ -73,11 +72,8 @@
 #define DTOOL_PLATFORM "linux_ppc"
 #endif
 
-#ifndef DTOOL_PLATFORM
+#if !defined(DTOOL_PLATFORM) && !defined(CPPPARSER)
 #error "Can't determine platform; please define DTOOL_PLATFORM in Config.pp file."
 #endif
 
-
-
 #endif
-

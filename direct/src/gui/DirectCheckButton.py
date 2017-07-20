@@ -1,10 +1,12 @@
-"""Undocumented Module"""
+"""A DirectCheckButton is a type of button that toggles between two states
+when clicked.  It also has a separate indicator that can be modified
+separately."""
 
 __all__ = ['DirectCheckButton']
 
 from panda3d.core import *
-from DirectButton import *
-from DirectLabel import *
+from .DirectButton import *
+from .DirectLabel import *
 
 class DirectCheckButton(DirectButton):
     """
@@ -169,7 +171,7 @@ class DirectCheckButton(DirectButton):
 
         if self['command']:
             # Pass any extra args to command
-            apply(self['command'], [self['indicatorValue']] + self['extraArgs'])
+            self['command'](*[self['indicatorValue']] + self['extraArgs'])
 
     def setIndicatorValue(self):
         self.component('indicator').guiItem.setState(self['indicatorValue'])

@@ -1,16 +1,15 @@
-// Filename: bulletContactCallbacks.h
-// Created by:  enn0x (10Apr10)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file bulletContactCallbacks.h
+ * @author enn0x
+ * @date 2010-04-10
+ */
 
 #ifndef __BULLET_CONTACT_CALLBACKS_H__
 #define __BULLET_CONTACT_CALLBACKS_H__
@@ -27,15 +26,14 @@
 #include "eventParameter.h"
 #include "pandaNode.h"
 
-struct UserPersitentData {
+struct UserPersistentData {
   PT(PandaNode) node0;
   PT(PandaNode) node1;
 };
 
-////////////////////////////////////////////////////////////////////
-//     Function: contact_added_callback
-//  Description: 
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 static bool
 contact_added_callback(btManifoldPoint &cp,
 #if BT_BULLET_VERSION >= 281
@@ -66,7 +64,7 @@ contact_added_callback(btManifoldPoint &cp,
     bullet_cat.debug() << "contact added: " << cp.m_userPersistentData << endl;
 
     // Gather persistent data
-    UserPersitentData *data = new UserPersitentData();
+    UserPersistentData *data = new UserPersistentData();
     data->node0 = node0;
     data->node1 = node1;
 
@@ -95,10 +93,9 @@ contact_added_callback(btManifoldPoint &cp,
   return true;
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: contact_processed_callback
-//  Description: 
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 static bool
 contact_processed_callback(btManifoldPoint &cp,
                            void *body0,
@@ -121,16 +118,15 @@ contact_processed_callback(btManifoldPoint &cp,
   return false;
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: contact_destroyed_callback
-//  Description: 
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 static bool
 contact_destroyed_callback(void *userPersistentData) {
 
   bullet_cat.debug() << "contact removed: " << userPersistentData << endl;
 
-  UserPersitentData *data = (UserPersitentData *)userPersistentData;
+  UserPersistentData *data = (UserPersistentData *)userPersistentData;
 
   // Send event
   if (bullet_enable_contact_events) {

@@ -1,16 +1,15 @@
-// Filename: ambientLight.h
-// Created by:  mike (09Jan97)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file ambientLight.h
+ * @author mike
+ * @date 1997-01-09
+ */
 
 #ifndef AMBIENTLIGHT_H
 #define AMBIENTLIGHT_H
@@ -19,13 +18,11 @@
 
 #include "lightNode.h"
 
-////////////////////////////////////////////////////////////////////
-//       Class : AmbientLight
-// Description : A light source that seems to illuminate all points in
-//               space at once.  This kind of light need not actually
-//               be part of the scene graph, since it has no meaningful
-//               position.
-////////////////////////////////////////////////////////////////////
+/**
+ * A light source that seems to illuminate all points in space at once.  This
+ * kind of light need not actually be part of the scene graph, since it has no
+ * meaningful position.
+ */
 class EXPCL_PANDA_PGRAPHNODES AmbientLight : public LightNode {
 PUBLISHED:
   AmbientLight(const string &name);
@@ -36,11 +33,11 @@ protected:
 public:
   virtual PandaNode *make_copy() const;
   virtual void write(ostream &out, int indent_level) const;
-  virtual bool is_ambient_light() const;
+  virtual bool is_ambient_light() const FINAL;
 
 PUBLISHED:
   virtual int get_class_priority() const;
-  
+
 public:
   virtual void bind(GraphicsStateGuardianBase *gsg, const NodePath &light,
                     int light_id);

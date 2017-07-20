@@ -1,16 +1,15 @@
-// Filename: bulletSoftBodyNode.h
-// Created by:  enn0x (27Dec10)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file bulletSoftBodyNode.h
+ * @author enn0x
+ * @date 2010-12-27
+ */
 
 #ifndef __BULLET_SOFT_BODY_NODE_H__
 #define __BULLET_SOFT_BODY_NODE_H__
@@ -35,10 +34,9 @@ class BulletSoftBodyControl;
 class BulletSoftBodyMaterial;
 class BulletSoftBodyWorldInfo;
 
-////////////////////////////////////////////////////////////////////
-//       Class : BulletSoftBodyNodeElement
-// Description : 
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 class EXPCL_PANDABULLET BulletSoftBodyNodeElement {
 
 PUBLISHED:
@@ -52,6 +50,13 @@ PUBLISHED:
   INLINE PN_stdfloat get_area() const;
   INLINE int is_attached() const;
 
+  MAKE_PROPERTY(pos, get_pos);
+  MAKE_PROPERTY(velocity, get_velocity);
+  MAKE_PROPERTY(normal, get_normal);
+  MAKE_PROPERTY(inv_mass, get_inv_mass);
+  MAKE_PROPERTY(area, get_area);
+  MAKE_PROPERTY(attached, is_attached);
+
 public:
   BulletSoftBodyNodeElement(btSoftBody::Node &node);
 
@@ -59,10 +64,9 @@ private:
   btSoftBody::Node &_node;
 };
 
-////////////////////////////////////////////////////////////////////
-//       Class : BulletSoftBodyNode
-// Description : 
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 class EXPCL_PANDABULLET BulletSoftBodyNode : public BulletBodyNode {
 
 public:
@@ -75,7 +79,7 @@ PUBLISHED:
   BulletSoftBodyWorldInfo get_world_info();
 
   void generate_bending_constraints(int distance, BulletSoftBodyMaterial *material=NULL);
-  void randomize_constraints(); 
+  void randomize_constraints();
 
   // Mass, volume, density
   void set_volume_mass(PN_stdfloat mass);
@@ -121,9 +125,9 @@ PUBLISHED:
   void unlink_surface();
 
   // Anchors
-  void append_anchor(int node, BulletRigidBodyNode *body, 
+  void append_anchor(int node, BulletRigidBodyNode *body,
       bool disable=false);
-  void append_anchor(int node, BulletRigidBodyNode *body, 
+  void append_anchor(int node, BulletRigidBodyNode *body,
       const LVector3 &pivot,
       bool disable=false);
 
@@ -190,7 +194,7 @@ PUBLISHED:
 
   static PT(BulletSoftBodyNode) make_tri_mesh(
       BulletSoftBodyWorldInfo &info,
-      PTA_LVecBase3 points, 
+      PTA_LVecBase3 points,
       PTA_int indices,
       bool randomizeConstraints=true);
 
@@ -205,6 +209,14 @@ PUBLISHED:
       const char *ele,
       const char *face,
       const char *node);
+
+  MAKE_PROPERTY(cfg, get_cfg);
+  MAKE_PROPERTY(world_info, get_world_info);
+  MAKE_PROPERTY(wind_velocity, get_wind_velocity, set_wind_velocity);
+  MAKE_PROPERTY(aabb, get_aabb);
+  MAKE_PROPERTY(num_clusters, get_num_clusters);
+  MAKE_SEQ_PROPERTY(materials, get_num_materials, get_material);
+  MAKE_SEQ_PROPERTY(nodes, get_num_nodes, get_node);
 
 public:
   virtual btCollisionObject *get_object() const;
@@ -228,14 +240,13 @@ private:
   static int get_point_index(LVecBase3 p, PTA_LVecBase3 points);
   static int next_line(const char *buffer);
 
-////////////////////////////////////////////////////////////////////
 public:
   static TypeHandle get_class_type() {
     return _type_handle;
   }
   static void init_type() {
     BulletBodyNode::init_type();
-    register_type(_type_handle, "BulletSoftBodyNode", 
+    register_type(_type_handle, "BulletSoftBodyNode",
                   BulletBodyNode::get_class_type());
   }
   virtual TypeHandle get_type() const {
@@ -253,4 +264,3 @@ private:
 #include "bulletSoftBodyNode.I"
 
 #endif // __BULLET_SOFT_BODY_NODE_H__
-

@@ -1,17 +1,17 @@
-// Filename: dxGraphicsStateGuardian9.h
-// Created by:  mike (02Feb99)
-// Updated by: fperazzi, PandaSE (05May10) (added get_supports_cg_profile)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file dxGraphicsStateGuardian9.h
+ * @author mike
+ * @date 1999-02-02
+ * @author fperazzi, PandaSE
+ * @date 2010-05-05
+ */
 
 #ifndef DXGRAPHICSSTATEGUARDIAN9_H
 #define DXGRAPHICSSTATEGUARDIAN9_H
@@ -51,11 +51,9 @@ class DXIndexBufferContext9;
 
 class wdxGraphicsBuffer9;
 
-////////////////////////////////////////////////////////////////////
-//       Class : DXGraphicsStateGuardian9
-// Description : A GraphicsStateGuardian for rendering into DirectX9
-//               contexts.
-////////////////////////////////////////////////////////////////////
+/**
+ * A GraphicsStateGuardian for rendering into DirectX9 contexts.
+ */
 class EXPCL_PANDADX DXGraphicsStateGuardian9 : public GraphicsStateGuardian {
 public:
   DXGraphicsStateGuardian9(GraphicsEngine *engine, GraphicsPipe *pipe);
@@ -81,7 +79,7 @@ public:
                            bool force);
   virtual void release_vertex_buffer(VertexBufferContext *vbc);
 
-  bool setup_array_data(CLP(VertexBufferContext)*& vbc,
+  bool setup_array_data(DXVertexBufferContext9 *&vbc,
                         const GeomVertexArrayDataHandle* data,
                         bool force);
 
@@ -108,7 +106,6 @@ public:
   virtual void end_frame(Thread *current_thread);
 
   virtual bool begin_draw_primitives(const GeomPipelineReader *geom_reader,
-                                     const GeomMunger *munger,
                                      const GeomVertexDataPipelineReader *data_reader,
                                      bool force);
   virtual bool draw_triangles(const GeomPrimitivePipelineReader *reader,
@@ -219,6 +216,7 @@ protected:
   const D3DCOLORVALUE &get_light_color(Light *light) const;
   INLINE static D3DTRANSFORMSTATETYPE get_tex_mat_sym(int stage_index);
 
+  static D3DBLENDOP get_blend_mode(ColorBlendAttrib::Mode mode);
   static D3DBLEND get_blend_func(ColorBlendAttrib::Operand operand);
   void report_texmgr_stats();
 
@@ -296,12 +294,12 @@ protected:
   CullFaceAttrib::Mode _cull_face_mode;
   RenderModeAttrib::Mode _current_fill_mode;  //point/wireframe/solid
 
-  PT(Shader)  _current_shader;
-  CLP(ShaderContext)  *_current_shader_context;
-  PT(Shader)  _vertex_array_shader;
-  CLP(ShaderContext)  *_vertex_array_shader_context;
-  PT(Shader)  _texture_binding_shader;
-  CLP(ShaderContext)  *_texture_binding_shader_context;
+  PT(Shader) _current_shader;
+  DXShaderContext9 *_current_shader_context;
+  PT(Shader) _vertex_array_shader;
+  DXShaderContext9 *_vertex_array_shader_context;
+  PT(Shader) _texture_binding_shader;
+  DXShaderContext9 *_texture_binding_shader_context;
 
   const DXIndexBufferContext9 *_active_ibuffer;
 
@@ -323,9 +321,9 @@ protected:
   DWORD _last_fvf;
   int _num_bound_streams;
 
-  // Cache the data necessary to bind each particular light each
-  // frame, so if we bind a given light multiple times, we only have
-  // to compute its data once.
+  // Cache the data necessary to bind each particular light each frame, so if
+  // we bind a given light multiple times, we only have to compute its data
+  // once.
   typedef pmap<NodePath, D3DLIGHT9> DirectionalLights;
   DirectionalLights _dlights;
 

@@ -1,16 +1,15 @@
-// Filename: cppType.h
-// Created by:  drose (19Oct99)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file cppType.h
+ * @author drose
+ * @date 1999-10-19
+ */
 
 #ifndef CPPTYPE_H
 #define CPPTYPE_H
@@ -26,17 +25,15 @@ class CPPTypedefType;
 class CPPTypeDeclaration;
 
 
-// This is an STL function object used to uniquely order CPPType
-// pointers.
+// This is an STL function object used to uniquely order CPPType pointers.
 class CPPTypeCompare {
 public:
   bool operator () (CPPType *a, CPPType *b) const;
 };
 
-///////////////////////////////////////////////////////////////////
-//       Class : CPPType
-// Description :
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 class CPPType : public CPPDeclaration {
 public:
   typedef vector<CPPTypedefType *> Typedefs;
@@ -48,8 +45,26 @@ public:
                                 CPPScope *global_scope);
 
   virtual bool is_tbd() const;
+  virtual bool is_fundamental() const;
+  virtual bool is_standard_layout() const;
   virtual bool is_trivial() const;
+  virtual bool is_constructible(const CPPType *type) const;
+  virtual bool is_default_constructible() const;
+  virtual bool is_copy_constructible() const;
+  virtual bool is_destructible() const;
   virtual bool is_parameter_expr() const;
+
+  // Convenience methods.
+  bool is_enum() const;
+  bool is_const() const;
+  bool is_reference() const;
+  bool is_pointer() const;
+
+  CPPType *remove_const();
+  inline CPPType *remove_volatile() { return this; }
+  inline CPPType *remove_cv() { return remove_const(); };
+  CPPType *remove_reference();
+  CPPType *remove_pointer();
 
   bool has_typedef_name() const;
   string get_typedef_name(CPPScope *scope = NULL) const;
@@ -62,6 +77,7 @@ public:
   string get_alt_name(int n) const;
 
   virtual bool is_incomplete() const;
+  virtual bool is_convertible_to(const CPPType *other) const;
   virtual bool is_equivalent(const CPPType &other) const;
 
   void output_instance(ostream &out, const string &name,

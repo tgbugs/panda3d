@@ -1,8 +1,3 @@
-"""Undocumented Module"""
-
-__all__ = ['ShadowCaster', 'avatarShadow', 'piratesAvatarShadow', 'arbitraryShadow']
-
-
 """Create a cheesy shadow effect by rendering the view of an
 object (e.g. the local avatar) from a special camera as seen from
 above (as if from the sun), using a solid gray foreground and a
@@ -14,7 +9,9 @@ multitexture rendering techniques.  It's not a particularly great
 way to do shadows.
 """
 
-from pandac.PandaModules import *
+__all__ = ['ShadowCaster', 'avatarShadow', 'piratesAvatarShadow', 'arbitraryShadow']
+
+from panda3d.core import *
 from direct.task import Task
 
 sc = None

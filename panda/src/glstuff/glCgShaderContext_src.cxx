@@ -1,22 +1,23 @@
-// Filename: glCgShaderContext_src.cxx
-// Created by: jyelon (01Sep05)
-// Updated by: fperazzi, PandaSE (29Apr10) (updated CLP with note that some
-//   parameter types only supported under Cg)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file glCgShaderContext_src.cxx
+ * @author jyelon
+ * @date 2005-09-01
+ * @author fperazzi, PandaSE
+ * @date 2010-04-29
+ *   parameter types only supported under Cg)
+ */
 
 #if defined(HAVE_CG) && !defined(OPENGLES)
 
-#include "Cg/cgGL.h"
+#include <Cg/cg.h>
+#include <Cg/cgGL.h>
 
 #include "pStatGPUTimer.h"
 
@@ -32,27 +33,38 @@ TypeHandle CLP(CgShaderContext)::_type_handle;
 #define cg_report_errors()
 #endif
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::Constructor
-//       Access: Public
-//  Description: xyz
-////////////////////////////////////////////////////////////////////
+/**
+ * xyz
+ */
 CLP(CgShaderContext)::
 CLP(CgShaderContext)(CLP(GraphicsStateGuardian) *glgsg, Shader *s) : ShaderContext(s) {
   _glgsg = glgsg;
   _cg_program = 0;
   _glsl_program = 0;
-  _has_divisor = false;
   _color_attrib_index = CA_color;
   _transform_table_param = 0;
   _slider_table_param = 0;
+  _frame_number = -1;
 
   nassertv(s->get_language() == Shader::SL_Cg);
 
-  CGcontext context = _glgsg->_cg_context;
+  // Get a Cg context for this GSG.
+  CGcontext context = glgsg->_cg_context;
+  if (context == 0) {
+    // The GSG doesn't have a Cg context yet.  Create one.
+    glgsg->_cg_context = context = cgCreateContext();
 
-  // Ask the shader to compile itself for us and
-  // to give us the resulting Cg program objects.
+#if CG_VERSION_NUM >= 3100
+    // This just sounds like a good thing to do.
+    cgGLSetContextGLSLVersion(context, cgGLDetectGLSLVersion());
+    if (glgsg->_shader_caps._active_vprofile == CG_PROFILE_GLSLV) {
+      cgGLSetContextOptimalOptions(context, CG_PROFILE_GLSLC);
+    }
+#endif
+  }
+
+  // Ask the shader to compile itself for us and to give us the resulting Cg
+  // program objects.
   if (!s->cg_compile_for(_glgsg->_shader_caps, context,
                          _cg_program, _cg_parameter_map)) {
     return;
@@ -93,7 +105,7 @@ CLP(CgShaderContext)(CLP(GraphicsStateGuardian) *glgsg, Shader *s) : ShaderConte
     }
   }
 
-  if (_cg_program != 0) {
+  if (_cg_program != 0 && _glgsg->_supports_glsl) {
     if (cgGetProgramProfile(_cg_program) == CG_PROFILE_GLSLC) {
       _glsl_program = cgGLGetProgramID(_cg_program);
 
@@ -111,18 +123,20 @@ CLP(CgShaderContext)(CLP(GraphicsStateGuardian) *glgsg, Shader *s) : ShaderConte
   }
 
   // We don't use cgGLSetParameterPointer to set the vertex attributes any
-  // longer, since it is buggy on non-NVIDIA hardware and doesn't allow explicit
-  // control over some parameters.  Instead, we have to figure out ourselves how
-  // to map the input varyings to OpenGL vertex attributes.
-  //
-  // We use positive indices to indicate generic vertex attributes, and negative
-  // indices to indicate conventional vertex attributes (ie. glVertexPointer).
-  int nvarying = _shader->_var_spec.size();
-  for (int i = 0; i < nvarying; ++i) {
-    Shader::ShaderVarSpec &bind = _shader->_var_spec[i];
+  // longer, since it is buggy on non-NVIDIA hardware and doesn't allow
+  // explicit control over some parameters.  Instead, we have to figure out
+  // ourselves how to map the input varyings to OpenGL vertex attributes.  We
+  // use positive indices to indicate generic vertex attributes, and negative
+  // indices to indicate conventional vertex attributes (ie.
+  // glVertexPointer).
+  size_t nvarying = _shader->_var_spec.size();
+  _attributes.resize(nvarying);
+
+  for (size_t i = 0; i < nvarying; ++i) {
+    const Shader::ShaderVarSpec &bind = _shader->_var_spec[i];
     CGparameter p = _cg_parameter_map[i];
     if (p == 0) {
-      bind._id._seqno = CA_unknown;
+      _attributes[i] = CA_unknown;
       continue;
     }
 
@@ -131,11 +145,11 @@ CLP(CgShaderContext)(CLP(GraphicsStateGuardian) *glgsg, Shader *s) : ShaderConte
 
     if (cgGetParameterBaseResource(p) == CG_ATTR0) {
       // The Cg toolkit claims that it is bound to a generic vertex attribute.
-      if (_glsl_program != 0) {
-        // This is where the Cg glslv compiler lies, making the stupid assumption
-        // that we're using an NVIDIA card where generic attributes are aliased
-        // with conventional vertex attributes.  Instead, it always uses
-        // conventional attributes in this case.  Correct this.
+      if (_glgsg->has_fixed_function_pipeline() && _glsl_program != 0) {
+        // This is where the Cg glslv compiler lies, making the stupid
+        // assumption that we're using an NVIDIA card where generic attributes
+        // are aliased with conventional vertex attributes.  Instead, it
+        // always uses conventional attributes in this case.  Correct this.
         int index = cgGetParameterResourceIndex(p);
         switch (index) {
         case 0:  // gl_Vertex
@@ -178,9 +192,9 @@ CLP(CgShaderContext)(CLP(GraphicsStateGuardian) *glgsg, Shader *s) : ShaderConte
 
     } else if (res == CG_GLSL_ATTRIB || _glsl_program != 0) {
       // With cg-glsl-version 130 and higher, no conventional attributes are
-      // used, but it instead uses specially named variables.
-      // A bit of guesswork is involved here; Cg seems to mostly use the
-      // semantics as attribute names in GLSL, with a few exceptions.
+      // used, but it instead uses specially named variables.  A bit of
+      // guesswork is involved here; Cg seems to mostly use the semantics as
+      // attribute names in GLSL, with a few exceptions.
       const char *attribname = NULL;
       switch (res) {
       case CG_POSITION0:
@@ -232,7 +246,7 @@ CLP(CgShaderContext)(CLP(GraphicsStateGuardian) *glgsg, Shader *s) : ShaderConte
       // A conventional texture coordinate set.
       loc = CA_texcoord + cgGetParameterResourceIndex(p);
 
-    } else {
+    } else if (_glgsg->has_fixed_function_pipeline()) {
       // Some other conventional vertex attribute.
       switch (res) {
       case CG_POSITION0:
@@ -262,6 +276,14 @@ CLP(CgShaderContext)(CLP(GraphicsStateGuardian) *glgsg, Shader *s) : ShaderConte
         GLCAT.error(false) << ".\n";
         loc = CA_unknown;
       }
+    } else {
+      GLCAT.error()
+        << "Cg varying " << cgGetParameterName(p);
+      if (cgGetParameterSemantic(p)) {
+        GLCAT.error(false) << " : " << cgGetParameterSemantic(p);
+      }
+      GLCAT.error(false) << " is bound to a conventional vertex attribute, "
+                            "but the compatibility profile is not enabled.\n";
     }
 
 #ifndef NDEBUG
@@ -297,29 +319,24 @@ CLP(CgShaderContext)(CLP(GraphicsStateGuardian) *glgsg, Shader *s) : ShaderConte
     }
 #endif
 
-    // Abuse the seqno field to store the GLSL attribute location.
-    bind._id._seqno = loc;
+    _attributes[i] = loc;
   }
 
   _glgsg->report_my_gl_errors();
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::Destructor
-//       Access: Public
-//  Description: xyz
-////////////////////////////////////////////////////////////////////
+/**
+ * xyz
+ */
 CLP(CgShaderContext)::
 ~CLP(CgShaderContext)() {
-  release_resources();
+  // Don't call release_resources; we may not have an active context.
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::release_resources
-//       Access: Public
-//  Description: Should deallocate all system resources (such as
-//               vertex program handles or Cg contexts).
-////////////////////////////////////////////////////////////////////
+/**
+ * Should deallocate all system resources (such as vertex program handles or
+ * Cg contexts).
+ */
 void CLP(CgShaderContext)::
 release_resources() {
   if (_cg_program != 0) {
@@ -340,21 +357,27 @@ release_resources() {
   _glgsg->report_my_gl_errors();
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::bind
-//       Access: Public
-//  Description: This function is to be called to enable a new
-//               shader.  It also initializes all of the shader's
-//               input parameters.
-////////////////////////////////////////////////////////////////////
-void CLP(CgShaderContext)::
-bind(bool reissue_parameters) {
-  if (_cg_program != 0) {
-    if (reissue_parameters) {
-      // Pass in k-parameters and transform-parameters
-      issue_parameters(Shader::SSD_general);
-    }
+/**
+ * Returns true if the shader is "valid", ie, if the compilation was
+ * successful.  The compilation could fail if there is a syntax error in the
+ * shader, or if the current video card isn't shader-capable, or if no shader
+ * languages are compiled into panda.
+ */
+bool CLP(CgShaderContext)::
+valid() {
+  if (_shader == nullptr || _shader->get_error_flag()) {
+    return false;
+  }
+  return (_cg_program != 0);
+}
 
+/**
+ * This function is to be called to enable a new shader.  It also initializes
+ * all of the shader's input parameters.
+ */
+void CLP(CgShaderContext)::
+bind() {
+  if (_cg_program != 0) {
     // Bind the shaders.
     cgGLEnableProgramProfiles(_cg_program);
     cgGLBindProgram(_cg_program);
@@ -364,11 +387,9 @@ bind(bool reissue_parameters) {
   }
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::unbind
-//       Access: Public
-//  Description: This function disables a currently-bound shader.
-////////////////////////////////////////////////////////////////////
+/**
+ * This function disables a currently-bound shader.
+ */
 void CLP(CgShaderContext)::
 unbind() {
   if (_cg_program != 0) {
@@ -384,66 +405,146 @@ unbind() {
   }
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::issue_parameters
-//       Access: Public
-//  Description: This function gets called whenever the RenderState
-//               or TransformState has changed, but the Shader
-//               itself has not changed.  It loads new values into the
-//               shader's parameters.
-//
-//               If "altered" is false, that means you promise that
-//               the parameters for this shader context have already
-//               been issued once, and that since the last time the
-//               parameters were issued, no part of the render
-//               state has changed except the external and internal
-//               transforms.
-////////////////////////////////////////////////////////////////////
+/**
+ * This function gets called whenever the RenderState or TransformState has
+ * changed, but the Shader itself has not changed.  It loads new values into
+ * the shader's parameters.
+ */
 void CLP(CgShaderContext)::
-issue_parameters(int altered) {
-  //PStatGPUTimer timer(_glgsg, _glgsg->_draw_set_state_shader_parameters_pcollector);
+set_state_and_transform(const RenderState *target_rs,
+                        const TransformState *modelview_transform,
+                        const TransformState *camera_transform,
+                        const TransformState *projection_transform) {
 
   if (!valid()) {
     return;
   }
 
-  // Iterate through _ptr parameters
-  for (int i=0; i<(int)_shader->_ptr_spec.size(); i++) {
-    if (altered & (_shader->_ptr_spec[i]._dep[0] | _shader->_ptr_spec[i]._dep[1])) {
-      const Shader::ShaderPtrSpec& _ptr = _shader->_ptr_spec[i];
-      Shader::ShaderPtrData* ptr_data =
-        const_cast< Shader::ShaderPtrData*>(_glgsg->fetch_ptr_parameter(_ptr));
+  // Find out which state properties have changed.
+  int altered = 0;
 
+  if (_modelview_transform != modelview_transform) {
+    _modelview_transform = modelview_transform;
+    altered |= (Shader::SSD_transform & ~Shader::SSD_view_transform);
+  }
+  if (_camera_transform != camera_transform) {
+    _camera_transform = camera_transform;
+    altered |= Shader::SSD_transform;
+  }
+  if (_projection_transform != projection_transform) {
+    _projection_transform = projection_transform;
+    altered |= Shader::SSD_projection;
+  }
+
+  if (_state_rs.was_deleted() || _state_rs == (const RenderState *)NULL) {
+    // Reset all of the state.
+    altered |= Shader::SSD_general;
+    _state_rs = target_rs;
+
+  } else if (_state_rs != target_rs) {
+    // The state has changed since last time.
+    if (_state_rs->get_attrib(ColorAttrib::get_class_slot()) !=
+        target_rs->get_attrib(ColorAttrib::get_class_slot())) {
+      altered |= Shader::SSD_color;
+    }
+    if (_state_rs->get_attrib(ColorScaleAttrib::get_class_slot()) !=
+        target_rs->get_attrib(ColorScaleAttrib::get_class_slot())) {
+      altered |= Shader::SSD_colorscale;
+    }
+    if (_state_rs->get_attrib(MaterialAttrib::get_class_slot()) !=
+        target_rs->get_attrib(MaterialAttrib::get_class_slot())) {
+      altered |= Shader::SSD_material;
+    }
+    if (_state_rs->get_attrib(ShaderAttrib::get_class_slot()) !=
+        target_rs->get_attrib(ShaderAttrib::get_class_slot())) {
+      altered |= Shader::SSD_shaderinputs;
+    }
+    if (_state_rs->get_attrib(FogAttrib::get_class_slot()) !=
+        target_rs->get_attrib(FogAttrib::get_class_slot())) {
+      altered |= Shader::SSD_fog;
+    }
+    if (_state_rs->get_attrib(LightAttrib::get_class_slot()) !=
+        target_rs->get_attrib(LightAttrib::get_class_slot())) {
+      altered |= Shader::SSD_light;
+    }
+    if (_state_rs->get_attrib(ClipPlaneAttrib::get_class_slot()) !=
+        target_rs->get_attrib(ClipPlaneAttrib::get_class_slot())) {
+      altered |= Shader::SSD_clip_planes;
+    }
+    if (_state_rs->get_attrib(TexMatrixAttrib::get_class_slot()) !=
+        target_rs->get_attrib(TexMatrixAttrib::get_class_slot())) {
+      altered |= Shader::SSD_tex_matrix;
+    }
+    _state_rs = target_rs;
+  }
+
+  // Is this the first time this shader is used this frame?
+  int frame_number = ClockObject::get_global_clock()->get_frame_count();
+  if (frame_number != _frame_number) {
+     altered |= Shader::SSD_frame;
+    _frame_number = frame_number;
+  }
+
+  if (altered != 0) {
+    issue_parameters(altered);
+  }
+}
+
+/**
+ * This function gets called whenever the RenderState or TransformState has
+ * changed, but the Shader itself has not changed.  It loads new values into
+ * the shader's parameters.
+ *
+ * If "altered" is false, that means you promise that the parameters for this
+ * shader context have already been issued once, and that since the last time
+ * the parameters were issued, no part of the render state has changed except
+ * the external and internal transforms.
+ */
+void CLP(CgShaderContext)::
+issue_parameters(int altered) {
+  PStatGPUTimer timer(_glgsg, _glgsg->_draw_set_state_shader_parameters_pcollector);
+
+  if (GLCAT.is_spam()) {
+    GLCAT.spam()
+      << "Setting uniforms for " << _shader->get_filename()
+      << " (altered 0x" << hex << altered << dec << ")\n";
+  }
+
+  // We have no way to track modifications to PTAs, so we assume that they are
+  // modified every frame and when we switch ShaderAttribs.
+  if (altered & (Shader::SSD_shaderinputs | Shader::SSD_frame)) {
+    // Iterate through _ptr parameters
+    for (int i = 0; i < (int)_shader->_ptr_spec.size(); ++i) {
+      Shader::ShaderPtrSpec &spec = _shader->_ptr_spec[i];
+
+      const Shader::ShaderPtrData *ptr_data =_glgsg->fetch_ptr_parameter(spec);
       if (ptr_data == NULL){ //the input is not contained in ShaderPtrData
         release_resources();
         return;
       }
-      //check if the data must be shipped to the GPU
-      /*if (!ptr_data->_updated)
-        continue;
-        ptr_data->_updated = false;*/
 
-      //Check if the size of the shader input and ptr_data match
-      int input_size = _ptr._dim[0] * _ptr._dim[1] * _ptr._dim[2];
+      // Check if the size of the shader input and ptr_data match
+      int input_size = spec._dim[0] * spec._dim[1] * spec._dim[2];
 
-      // dimension is negative only if the parameter had the (deprecated)k_ prefix.
-      if ((input_size > ptr_data->_size) && (_ptr._dim[0] > 0)) {
-        GLCAT.error() << _ptr._id._name << ": incorrect number of elements, expected "
+      // dimension is negative only if the parameter had the (deprecated)k_
+      // prefix.
+      if ((input_size > ptr_data->_size) && (spec._dim[0] > 0)) {
+        GLCAT.error() << spec._id._name << ": incorrect number of elements, expected "
                       <<  input_size <<" got " <<  ptr_data->_size << "\n";
         release_resources();
         return;
       }
-      CGparameter p = _cg_parameter_map[_ptr._id._seqno];
+      CGparameter p = _cg_parameter_map[spec._id._seqno];
 
       switch (ptr_data->_type) {
       case Shader::SPT_float:
-        switch(_ptr._info._class) {
+        switch (spec._info._class) {
         case Shader::SAC_scalar:
           cgSetParameter1fv(p, (float*)ptr_data->_ptr);
           continue;
 
         case Shader::SAC_vector:
-          switch (_ptr._info._type) {
+          switch (spec._info._type) {
           case Shader::SAT_vec1:
             cgSetParameter1fv(p, (float*)ptr_data->_ptr);
             continue;
@@ -466,22 +567,22 @@ issue_parameters(int altered) {
           continue;
 
         case Shader::SAC_array:
-          switch (_ptr._info._subclass) {
+          switch (spec._info._subclass) {
           case Shader::SAC_scalar:
-            cgGLSetParameterArray1f(p, 0, _ptr._dim[0], (float*)ptr_data->_ptr);
+            cgGLSetParameterArray1f(p, 0, spec._dim[0], (float*)ptr_data->_ptr);
             continue;
           case Shader::SAC_vector:
-            switch (_ptr._dim[2]) {
-            case 1: cgGLSetParameterArray1f(p, 0, _ptr._dim[0], (float*)ptr_data->_ptr); continue;
-            case 2: cgGLSetParameterArray2f(p, 0, _ptr._dim[0], (float*)ptr_data->_ptr); continue;
-            case 3: cgGLSetParameterArray3f(p, 0, _ptr._dim[0], (float*)ptr_data->_ptr); continue;
-            case 4: cgGLSetParameterArray4f(p, 0, _ptr._dim[0], (float*)ptr_data->_ptr); continue;
+            switch (spec._dim[2]) {
+            case 1: cgGLSetParameterArray1f(p, 0, spec._dim[0], (float*)ptr_data->_ptr); continue;
+            case 2: cgGLSetParameterArray2f(p, 0, spec._dim[0], (float*)ptr_data->_ptr); continue;
+            case 3: cgGLSetParameterArray3f(p, 0, spec._dim[0], (float*)ptr_data->_ptr); continue;
+            case 4: cgGLSetParameterArray4f(p, 0, spec._dim[0], (float*)ptr_data->_ptr); continue;
             default:
-              nassertd(_ptr._dim[2] > 0 && _ptr._dim[2] <= 4) continue;
+              nassertd(spec._dim[2] > 0 && spec._dim[2] <= 4) continue;
             }
             continue;
           case Shader::SAC_matrix:
-            cgGLSetMatrixParameterArrayfc(p, 0, _ptr._dim[0], (float*)ptr_data->_ptr);
+            cgGLSetMatrixParameterArrayfc(p, 0, spec._dim[0], (float*)ptr_data->_ptr);
             continue;
           default:
             nassertd(false) continue;
@@ -491,13 +592,13 @@ issue_parameters(int altered) {
         }
 
       case Shader::SPT_double:
-        switch(_ptr._info._class) {
+        switch (spec._info._class) {
         case Shader::SAC_scalar:
           cgSetParameter1dv(p, (double*)ptr_data->_ptr);
           continue;
 
         case Shader::SAC_vector:
-          switch (_ptr._info._type) {
+          switch (spec._info._type) {
           case Shader::SAT_vec1:
             cgSetParameter1dv(p, (double*)ptr_data->_ptr);
             continue;
@@ -520,22 +621,22 @@ issue_parameters(int altered) {
           continue;
 
         case Shader::SAC_array:
-          switch (_ptr._info._subclass) {
+          switch (spec._info._subclass) {
           case Shader::SAC_scalar:
-            cgGLSetParameterArray1d(p, 0, _ptr._dim[0], (double*)ptr_data->_ptr);
+            cgGLSetParameterArray1d(p, 0, spec._dim[0], (double*)ptr_data->_ptr);
             continue;
           case Shader::SAC_vector:
-            switch (_ptr._dim[2]) {
-            case 1: cgGLSetParameterArray1d(p, 0, _ptr._dim[0], (double*)ptr_data->_ptr); continue;
-            case 2: cgGLSetParameterArray2d(p, 0, _ptr._dim[0], (double*)ptr_data->_ptr); continue;
-            case 3: cgGLSetParameterArray3d(p, 0, _ptr._dim[0], (double*)ptr_data->_ptr); continue;
-            case 4: cgGLSetParameterArray4d(p, 0, _ptr._dim[0], (double*)ptr_data->_ptr); continue;
+            switch (spec._dim[2]) {
+            case 1: cgGLSetParameterArray1d(p, 0, spec._dim[0], (double*)ptr_data->_ptr); continue;
+            case 2: cgGLSetParameterArray2d(p, 0, spec._dim[0], (double*)ptr_data->_ptr); continue;
+            case 3: cgGLSetParameterArray3d(p, 0, spec._dim[0], (double*)ptr_data->_ptr); continue;
+            case 4: cgGLSetParameterArray4d(p, 0, spec._dim[0], (double*)ptr_data->_ptr); continue;
             default:
-              nassertd(_ptr._dim[2] > 0 && _ptr._dim[2] <= 4) continue;
+              nassertd(spec._dim[2] > 0 && spec._dim[2] <= 4) continue;
             }
             continue;
           case Shader::SAC_matrix:
-            cgGLSetMatrixParameterArraydc(p, 0, _ptr._dim[0], (double*)ptr_data->_ptr);
+            cgGLSetMatrixParameterArraydc(p, 0, spec._dim[0], (double*)ptr_data->_ptr);
             continue;
           default:
             nassertd(false) continue;
@@ -546,12 +647,12 @@ issue_parameters(int altered) {
         continue;
 
       case Shader::SPT_int:
-        switch(_ptr._info._class) {
+        switch (spec._info._class) {
         case Shader::SAC_scalar:
           cgSetParameter1iv(p, (int*)ptr_data->_ptr);
           continue;
         case Shader::SAC_vector:
-          switch(_ptr._info._type) {
+          switch (spec._info._type) {
           case Shader::SAT_vec1: cgSetParameter1iv(p, (int*)ptr_data->_ptr); continue;
           case Shader::SAT_vec2: cgSetParameter2iv(p, (int*)ptr_data->_ptr); continue;
           case Shader::SAT_vec3: cgSetParameter3iv(p, (int*)ptr_data->_ptr); continue;
@@ -563,21 +664,27 @@ issue_parameters(int altered) {
           nassertd(false) continue;
         }
       default:
-        GLCAT.error() << _ptr._id._name << ":" << "unrecognized parameter type\n";
+        GLCAT.error() << spec._id._name << ":" << "unrecognized parameter type\n";
         release_resources();
         return;
       }
     }
   }
 
-  for (int i=0; i<(int)_shader->_mat_spec.size(); i++) {
-    if (altered & (_shader->_mat_spec[i]._dep[0] | _shader->_mat_spec[i]._dep[1])) {
-      const LMatrix4 *val = _glgsg->fetch_specified_value(_shader->_mat_spec[i], altered);
+  if (altered & _shader->_mat_deps) {
+    for (int i = 0; i < (int)_shader->_mat_spec.size(); ++i) {
+      Shader::ShaderMatSpec &spec = _shader->_mat_spec[i];
+
+      if ((altered & (spec._dep[0] | spec._dep[1])) == 0) {
+        continue;
+      }
+
+      const LMatrix4 *val = _glgsg->fetch_specified_value(spec, altered);
       if (!val) continue;
       const PN_stdfloat *data = val->get_data();
 
-      CGparameter p = _cg_parameter_map[_shader->_mat_spec[i]._id._seqno];
-      switch (_shader->_mat_spec[i]._piece) {
+      CGparameter p = _cg_parameter_map[spec._id._seqno];
+      switch (spec._piece) {
       case Shader::SMP_whole: GLfc(cgGLSetMatrixParameter)(p, data); continue;
       case Shader::SMP_transpose: GLfr(cgGLSetMatrixParameter)(p, data); continue;
       case Shader::SMP_col0: GLf(cgGLSetParameter4)(p, data[0], data[4], data[ 8], data[12]); continue;
@@ -606,19 +713,23 @@ issue_parameters(int altered) {
       case Shader::SMP_cell15:
         GLf(cgGLSetParameter1)(p, data[15]);
         continue;
+      case Shader::SMP_cell14:
+        GLf(cgGLSetParameter1)(p, data[14]);
+        continue;
+      case Shader::SMP_cell13:
+        GLf(cgGLSetParameter1)(p, data[13]);
+        continue;
       }
     }
   }
 
+  cg_report_errors();
   _glgsg->report_my_gl_errors();
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: CgGLShaderContext::update_transform_table
-//       Access: Public
-//  Description: Changes the active transform table, used for hardware
-//               skinning.
-////////////////////////////////////////////////////////////////////
+/**
+ * Changes the active transform table, used for hardware skinning.
+ */
 void CLP(CgShaderContext)::
 update_transform_table(const TransformTable *table) {
   LMatrix4f *matrices = (LMatrix4f *)alloca(_transform_table_size * 64);
@@ -644,12 +755,9 @@ update_transform_table(const TransformTable *table) {
                                 _transform_table_size, (float *)matrices);
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: CgGLShaderContext::update_slider_table
-//       Access: Public
-//  Description: Changes the active slider table, used for hardware
-//               skinning.
-////////////////////////////////////////////////////////////////////
+/**
+ * Changes the active slider table, used for hardware skinning.
+ */
 void CLP(CgShaderContext)::
 update_slider_table(const SliderTable *table) {
   float *sliders = (float *)alloca(_slider_table_size * 4);
@@ -665,25 +773,20 @@ update_slider_table(const SliderTable *table) {
   cgGLSetParameterArray4f(_slider_table_param, 0, _slider_table_size, sliders);
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::disable_shader_vertex_arrays
-//       Access: Public
-//  Description: Disable all the vertex arrays used by this shader.
-////////////////////////////////////////////////////////////////////
+/**
+ * Disable all the vertex arrays used by this shader.
+ */
 void CLP(CgShaderContext)::
 disable_shader_vertex_arrays() {
   if (!valid()) {
     return;
   }
 
-  for (int i = 0; i < (int)_shader->_var_spec.size(); ++i) {
-    GLint p = _shader->_var_spec[i]._id._seqno;
+  for (size_t i = 0; i < _shader->_var_spec.size(); ++i) {
+    GLint p = _attributes[i];
 
     if (p >= 0) {
-      _glgsg->_glDisableVertexAttribArray(p);
-      if (_has_divisor) {
-        _glgsg->_glVertexAttribDivisor(p, 0);
-      }
+      _glgsg->disable_vertex_attrib_array(p);
     } else {
 #ifdef SUPPORT_FIXED_FUNCTION
       switch (p) {
@@ -714,23 +817,15 @@ disable_shader_vertex_arrays() {
   _glgsg->report_my_gl_errors();
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::update_shader_vertex_arrays
-//       Access: Public
-//  Description: Disables all vertex arrays used by the previous
-//               shader, then enables all the vertex arrays needed
-//               by this shader.  Extracts the relevant vertex array
-//               data from the gsg.
-//               The current implementation is inefficient, because
-//               it may unnecessarily disable arrays then immediately
-//               reenable them.  We may optimize this someday.
-////////////////////////////////////////////////////////////////////
+/**
+ * Disables all vertex arrays used by the previous shader, then enables all
+ * the vertex arrays needed by this shader.  Extracts the relevant vertex
+ * array data from the gsg.  The current implementation is inefficient,
+ * because it may unnecessarily disable arrays then immediately reenable them.
+ * We may optimize this someday.
+ */
 bool CLP(CgShaderContext)::
 update_shader_vertex_arrays(ShaderContext *prev, bool force) {
-  if (prev) {
-    prev->disable_shader_vertex_arrays();
-  }
-
   if (!valid()) {
     return true;
   }
@@ -746,8 +841,11 @@ update_shader_vertex_arrays(ShaderContext *prev, bool force) {
     const GeomVertexArrayDataHandle *array_reader;
     Geom::NumericType numeric_type;
     int start, stride, num_values;
-    int nvarying = _shader->_var_spec.size();
-    for (int i = 0; i < nvarying; ++i) {
+    size_t nvarying = _shader->_var_spec.size();
+
+    GLuint max_p = 0;
+
+    for (size_t i = 0; i < nvarying; ++i) {
       const Shader::ShaderVarSpec &bind = _shader->_var_spec[i];
       InternalName *name = bind._name;
       int texslot = bind._append_uv;
@@ -761,7 +859,7 @@ update_shader_vertex_arrays(ShaderContext *prev, bool force) {
           name = name->append(texname->get_basename());
         }
       }
-      GLint p = bind._id._seqno;
+      GLint p = _attributes[i];
 
       // Don't apply vertex colors if they are disabled with a ColorAttrib.
       int num_elements, element_stride, divisor;
@@ -778,10 +876,12 @@ update_shader_vertex_arrays(ShaderContext *prev, bool force) {
         client_pointer += start;
 
         // We don't use cgGLSetParameterPointer because it is very buggy and
-        // limited in the options we can set.start
+        // limited in the options we can set.
         GLenum type = _glgsg->get_numeric_type(numeric_type);
         if (p >= 0) {
-          _glgsg->_glEnableVertexAttribArray(p);
+          max_p = max(max_p, (GLuint)p + 1);
+
+          _glgsg->enable_vertex_attrib_array(p);
 
           if (bind._integer) {
             _glgsg->_glVertexAttribIPointer(p, num_values, type,
@@ -796,9 +896,8 @@ update_shader_vertex_arrays(ShaderContext *prev, bool force) {
                                            normalized, stride, client_pointer);
           }
 
-          if (_glgsg->_supports_vertex_attrib_divisor) {
-            _glgsg->_glVertexAttribDivisor(p, divisor);
-            _has_divisor = true;
+          if (divisor > 0) {
+            _glgsg->set_vertex_attrib_divisor(p, divisor);
           }
 
         } else {
@@ -842,25 +941,23 @@ update_shader_vertex_arrays(ShaderContext *prev, bool force) {
 #endif  // SUPPORT_FIXED_FUNCTION
         }
       } else {
-        // There is no vertex column with this name; disable the attribute array.
-#ifdef SUPPORT_FIXED_FUNCTION
-        if (p == 0) {
-          //NOTE: if we disable attribute 0 in compatibility profile, the object
-          // will disappear.  In GLSL we fix this by forcing the vertex column
-          // to be at 0, but we don't have control over that with Cg.  So, we
-          // work around this by just binding something silly to 0.
+        // There is no vertex column with this name; disable the attribute
+        // array.
+        if (_glgsg->has_fixed_function_pipeline() && p == 0) {
+          // NOTE: if we disable attribute 0 in compatibility profile, the
+          // object will disappear.  In GLSL we fix this by forcing the vertex
+          // column to be at 0, but we don't have control over that with Cg.
+          // So, we work around this by just binding something silly to 0.
           // This breaks flat colors, but it's better than invisible objects?
-          _glgsg->_glEnableVertexAttribArray(0);
+          _glgsg->enable_vertex_attrib_array(0);
           if (bind._integer) {
             _glgsg->_glVertexAttribIPointer(0, 4, GL_INT, 0, 0);
           } else {
             _glgsg->_glVertexAttribPointer(0, 4, GL_FLOAT, GL_FALSE, 0, 0);
           }
 
-        } else
-#endif  // SUPPORT_FIXED_FUNCTION
-        if (p >= 0) {
-          _glgsg->_glDisableVertexAttribArray(p);
+        } else if (p >= 0) {
+          _glgsg->disable_vertex_attrib_array(p);
 
           if (p == _color_attrib_index) {
 #ifdef STDFLOAT_DOUBLE
@@ -900,6 +997,12 @@ update_shader_vertex_arrays(ShaderContext *prev, bool force) {
         }
       }
     }
+
+    // Disable attribute arrays we don't use.
+    GLint highest_p = _glgsg->_enabled_vertex_attrib_arrays.get_highest_on_bit() + 1;
+    for (GLint p = max_p; p < highest_p; ++p) {
+      _glgsg->disable_vertex_attrib_array(p);
+    }
   }
 
   if (_transform_table_param) {
@@ -918,11 +1021,9 @@ update_shader_vertex_arrays(ShaderContext *prev, bool force) {
   return true;
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::disable_shader_texture_bindings
-//       Access: Public
-//  Description: Disable all the texture bindings used by this shader.
-////////////////////////////////////////////////////////////////////
+/**
+ * Disable all the texture bindings used by this shader.
+ */
 void CLP(CgShaderContext)::
 disable_shader_texture_bindings() {
   if (!valid()) {
@@ -934,7 +1035,7 @@ disable_shader_texture_bindings() {
     if (p == 0) continue;
 
     int texunit = cgGetParameterResourceIndex(p);
-    _glgsg->_glActiveTexture(GL_TEXTURE0 + texunit);
+    _glgsg->set_active_texture_stage(texunit);
 
     glBindTexture(GL_TEXTURE_1D, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
@@ -948,38 +1049,32 @@ disable_shader_texture_bindings() {
       glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
     }
     // This is probably faster - but maybe not as safe?
-    //cgGLDisableTextureParameter(p);
+    // cgGLDisableTextureParameter(p);
   }
 
   cg_report_errors();
   _glgsg->report_my_gl_errors();
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GLCgShaderContext::update_shader_texture_bindings
-//       Access: Public
-//  Description: Disables all texture bindings used by the previous
-//               shader, then enables all the texture bindings needed
-//               by this shader.  Extracts the relevant vertex array
-//               data from the gsg.
-//               The current implementation is inefficient, because
-//               it may unnecessarily disable textures then immediately
-//               reenable them.  We may optimize this someday.
-////////////////////////////////////////////////////////////////////
+/**
+ * Disables all texture bindings used by the previous shader, then enables all
+ * the texture bindings needed by this shader.  Extracts the relevant vertex
+ * array data from the gsg.  The current implementation is inefficient,
+ * because it may unnecessarily disable textures then immediately reenable
+ * them.  We may optimize this someday.
+ */
 void CLP(CgShaderContext)::
 update_shader_texture_bindings(ShaderContext *prev) {
-  if (prev) {
-    prev->disable_shader_texture_bindings();
-  }
+  // if (prev) { prev->disable_shader_texture_bindings(); }
 
   if (!valid()) {
     return;
   }
 
-  // We get the TextureAttrib directly from the _target_rs, not the
-  // filtered TextureAttrib in _target_texture.
-  const TextureAttrib *texattrib = DCAST(TextureAttrib, _glgsg->_target_rs->get_attrib_def(TextureAttrib::get_class_slot()));
-  nassertv(texattrib != (TextureAttrib *)NULL);
+  // We get the TextureAttrib directly from the _target_rs, not the filtered
+  // TextureAttrib in _target_texture.
+  const TextureAttrib *texattrib;
+  _glgsg->_target_rs->get_attrib_def(texattrib);
 
   for (int i = 0; i < (int)_shader->_tex_spec.size(); ++i) {
     Shader::ShaderTexSpec &spec = _shader->_tex_spec[i];
@@ -990,30 +1085,19 @@ update_shader_texture_bindings(ShaderContext *prev) {
       continue;
     }
     int texunit = cgGetParameterResourceIndex(p);
-
-    Texture *tex = NULL;
     int view = _glgsg->get_current_tex_view_offset();
     SamplerState sampler;
 
-    if (id != NULL) {
-      tex = _glgsg->_target_shader->get_shader_input_texture(id, &sampler);
-
-    } else {
-      if (spec._stage >= texattrib->get_num_on_stages()) {
-        // Apply a white texture in order to make it easier to use a shader
-        // that takes a texture on a model that doesn't have a texture applied.
-        _glgsg->_glActiveTexture(GL_TEXTURE0 + texunit);
-        _glgsg->apply_white_texture();
-        continue;
-      }
-      TextureStage *stage = texattrib->get_on_stage(spec._stage);
-      tex = texattrib->get_on_texture(stage);
-      sampler = texattrib->get_on_sampler(stage);
-      view += stage->get_tex_view_offset();
+    PT(Texture) tex = _glgsg->fetch_specified_texture(spec, sampler, view);
+    if (tex.is_null()) {
+      // Apply a white texture in order to make it easier to use a shader that
+      // takes a texture on a model that doesn't have a texture applied.
+      _glgsg->apply_white_texture(i);
+      continue;
     }
 
     if (spec._suffix != 0) {
-      // The suffix feature is inefficient. It is a temporary hack.
+      // The suffix feature is inefficient.  It is a temporary hack.
       if (tex == 0) {
         continue;
       }
@@ -1023,7 +1107,7 @@ update_shader_texture_bindings(ShaderContext *prev) {
       continue;
     }
 
-    _glgsg->_glActiveTexture(GL_TEXTURE0 + texunit);
+    _glgsg->set_active_texture_stage(texunit);
 
     TextureContext *tc = tex->prepare_now(view, _glgsg->_prepared_objects, _glgsg);
     if (tc == (TextureContext*)NULL) {
@@ -1040,8 +1124,9 @@ update_shader_texture_bindings(ShaderContext *prev) {
       continue;
     }
 
-    _glgsg->apply_texture(tc);
-    _glgsg->apply_sampler(texunit, sampler, tc);
+    CLP(TextureContext) *gtc = (CLP(TextureContext) *)tc;
+    _glgsg->apply_texture(gtc);
+    _glgsg->apply_sampler(texunit, sampler, gtc);
   }
 
   cg_report_errors();

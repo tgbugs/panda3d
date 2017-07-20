@@ -1,16 +1,15 @@
-// Filename: config_text.cxx
-// Created by:  drose (02Mar00)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file config_text.cxx
+ * @author drose
+ * @date 2000-03-02
+ */
 
 #include "config_text.h"
 #include "staticTextFont.h"
@@ -21,7 +20,6 @@
 #include "dynamicTextFont.h"
 #include "dynamicTextGlyph.h"
 #include "dynamicTextPage.h"
-#include "geomTextGlyph.h"
 #include "geomTextGlyph.h"
 #include "unicodeLatinMap.h"
 #include "pandaSystem.h"
@@ -49,6 +47,18 @@ ConfigVariableBool text_dynamic_merge
           "as the text is assembled, or false to wait for the flatten "
           "operation.  Usually it's a performance "
           "advantage to keep this true.  See TextNode::set_flatten_flags()."));
+
+ConfigVariableBool text_kerning
+("text-kerning", false,
+ PRC_DESC("Set this true to enable kerning when the font provides kerning "
+          "tables.  This can result in more aesthetically pleasing spacing "
+          "between individual glyphs.  Has no effect when text-use-harfbuzz "
+          "is true, since HarfBuzz offers superior kerning support."));
+
+ConfigVariableBool text_use_harfbuzz
+("text-use-harfbuzz", false,
+ PRC_DESC("Set this true to enable HarfBuzz support, which offers superior "
+          "text shaping and better support for non-Latin text."));
 
 ConfigVariableInt text_anisotropic_degree
 ("text-anisotropic-degree", 1,
@@ -133,7 +143,7 @@ ConfigVariableInt text_embed_graphic_key
 wstring
 get_text_soft_hyphen_output() {
   static wstring *text_soft_hyphen_output = NULL;
-  static ConfigVariableString 
+  static ConfigVariableString
     cv("text-soft-hyphen-output", "-",
        PRC_DESC("This is the string that is output, encoded in the default "
                 "encoding, to represent the hyphen character that is "
@@ -156,7 +166,7 @@ ConfigVariableDouble text_hyphen_ratio
 wstring
 get_text_never_break_before() {
   static wstring *text_never_break_before = NULL;
-  static ConfigVariableString 
+  static ConfigVariableString
     cv("text-never-break-before", ",.-:?!;",
        PRC_DESC("This string represents a list of individual characters "
                 "that should never appear at the beginning of a line "
@@ -201,14 +211,12 @@ ConfigVariableEnum<TextFont::RenderMode> text_render_mode
 
 
 
-////////////////////////////////////////////////////////////////////
-//     Function: init_libtext
-//  Description: Initializes the library.  This must be called at
-//               least once before any of the functions or classes in
-//               this library can be used.  Normally it will be
-//               called by the static initializers and need not be
-//               called explicitly, but special cases exist.
-////////////////////////////////////////////////////////////////////
+/**
+ * Initializes the library.  This must be called at least once before any of
+ * the functions or classes in this library can be used.  Normally it will be
+ * called by the static initializers and need not be called explicitly, but
+ * special cases exist.
+ */
 void
 init_libtext() {
   static bool initialized = false;
@@ -217,21 +225,19 @@ init_libtext() {
   }
   initialized = true;
 
+  GeomTextGlyph::init_type();
   StaticTextFont::init_type();
   TextFont::init_type();
   TextGlyph::init_type();
   TextNode::init_type();
   TextProperties::init_type();
 
+  GeomTextGlyph::register_with_read_factory();
+
 #ifdef HAVE_FREETYPE
   DynamicTextFont::init_type();
   DynamicTextGlyph::init_type();
   DynamicTextPage::init_type();
-  GeomTextGlyph::init_type();
-  GeomTextGlyph::init_type();
-
-  GeomTextGlyph::register_with_read_factory();
-  GeomTextGlyph::register_with_read_factory();
 
   PandaSystem *ps = PandaSystem::get_global_ptr();
   ps->add_system("Freetype");

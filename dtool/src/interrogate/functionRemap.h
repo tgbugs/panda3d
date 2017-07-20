@@ -1,16 +1,15 @@
-// Filename: functionRemap.h
-// Created by:  drose (19Sep01)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file functionRemap.h
+ * @author drose
+ * @date 2001-09-19
+ */
 
 #ifndef FUNCTIONREMAP_H
 #define FUNCTIONREMAP_H
@@ -33,16 +32,14 @@ class CPPScope;
 class CPPFunctionType;
 class InterfaceMaker;
 
-////////////////////////////////////////////////////////////////////
-//       Class : FunctionRemap
-// Description : This class describes how to remap a C++ function (and
-//               its list of parameters and return type) to a wrapped
-//               function, for a particular scripting language.
-//
-//               The InterfaceMaker class will create one of these for
-//               each function, including one for each instance of an
-//               overloaded function.
-////////////////////////////////////////////////////////////////////
+/**
+ * This class describes how to remap a C++ function (and its list of
+ * parameters and return type) to a wrapped function, for a particular
+ * scripting language.
+ *
+ * The InterfaceMaker class will create one of these for each function,
+ * including one for each instance of an overloaded function.
+ */
 class FunctionRemap {
 public:
   FunctionRemap(const InterrogateType &itype,
@@ -64,6 +61,9 @@ public:
   FunctionWrapperIndex make_wrapper_entry(FunctionIndex function_index);
 
   string get_call_str(const string &container, const vector_string &pexprs) const;
+
+  int get_min_num_args() const;
+  int get_max_num_args() const;
 
   class Parameter {
   public:
@@ -100,6 +100,7 @@ public:
     F_coerce_constructor = 0x1000,
     F_divide_float       = 0x2000,
     F_hash               = 0x4000,
+    F_explicit_args      = 0x8000,
   };
 
   typedef vector<Parameter> Parameters;
@@ -112,7 +113,7 @@ public:
   bool _blocking;
   bool _extension;
   bool _const_method;
-  int _first_true_parameter;
+  size_t _first_true_parameter;
   int _num_default_parameters;
   Type _type;
   int _flags;
@@ -137,7 +138,7 @@ public:
   bool _is_valid;
 
 private:
-  string get_parameter_expr(int n, const vector_string &pexprs) const;
+  string get_parameter_expr(size_t n, const vector_string &pexprs) const;
   bool setup_properties(const InterrogateFunction &ifunc, InterfaceMaker *interface_maker);
 };
 

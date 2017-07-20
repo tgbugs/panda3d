@@ -1,16 +1,15 @@
-// Filename: meshDrawer.cxx
-// Created by:  treeform (19dec08)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file meshDrawer.cxx
+ * @author treeform
+ * @date 2008-12-19
+ */
 
 #include "meshDrawer.h"
 
@@ -34,59 +33,58 @@
 TypeHandle MeshDrawer::_type_handle;
 
 PN_stdfloat randFloat() {
-  return ((PN_stdfloat) rand() / (PN_stdfloat) 0x7fffffff);
+  return ((PN_stdfloat)rand() / (PN_stdfloat)RAND_MAX);
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::generator
-//       Access: Private
-//  Description: Creates a system with a given budget.
-////////////////////////////////////////////////////////////////////
+/**
+ * Creates a system with a given budget.
+ */
 void MeshDrawer::generator(int budget) {
   // create enough triangles for budget:
   _vdata = new GeomVertexData(_root.get_name(), GeomVertexFormat::get_v3n3c4t2(), Geom::UH_static);//UH_dynamic);
-  GeomVertexWriter *tvertex = new GeomVertexWriter(_vdata, "vertex");
-  GeomVertexWriter *tnormal = new GeomVertexWriter(_vdata, "normal");
-  GeomVertexWriter *tuv = new GeomVertexWriter(_vdata, "texcoord");
-  GeomVertexWriter *tcolor = new GeomVertexWriter(_vdata, "color");
-  _prim = new GeomTriangles(Geom::UH_static);
+  _vdata->unclean_set_num_rows(budget * 3);
 
-  // iterate and fill _up a geom with random data so that it will
-  // not be optimized out by panda3d system
-  for(int i = 0; i < budget; i++) {
-    for( int vert = 0; vert < 3; vert++) {
-      LVector3 vec3 = LVector3(randFloat()+1000,randFloat(),randFloat())*.001;
-      LVector4 vec4 = LVector4(1,1,1,randFloat());
-      LVector2 vec2 = LVector2(0,randFloat());
-      tvertex->add_data3(vec3);
-      tcolor->add_data4(vec4);
-      tuv->add_data2(vec2);
-      tnormal->add_data3(vec3);
+  {
+    GeomVertexWriter tvertex(_vdata, "vertex");
+    GeomVertexWriter tnormal(_vdata, "normal");
+    GeomVertexWriter tuv(_vdata, "texcoord");
+    GeomVertexWriter tcolor(_vdata, "color");
+
+    // iterate and fill _up a geom with random data so that it will not be
+    // optimized out by panda3d system
+    for (int i = 0; i < budget; i++) {
+      for (int vert = 0; vert < 3; vert++) {
+        LVector3 vec3 = LVector3(randFloat()+1000,randFloat(),randFloat())*.001;
+        LVector4 vec4 = LVector4(1,1,1,randFloat());
+        LVector2 vec2 = LVector2(0,randFloat());
+        tvertex.set_data3(vec3);
+        tcolor.set_data4(vec4);
+        tuv.set_data2(vec2);
+        tnormal.set_data3(vec3);
+      }
     }
-    _prim->add_vertices(i * 3, i * 3 + 1, i * 3 + 2);
   }
+
   // create our node and attach it to this node path
+  _prim = new GeomTriangles(Geom::UH_static);
+  _prim->add_next_vertices(budget * 3);
   _prim->close_primitive();
   _geom = new Geom(_vdata);
   _geom->add_primitive(_prim);
-  _geomnode = new GeomNode("__MeshDrawer_GeomNode");
+  if (_geomnode == NULL) {
+    _geomnode = new GeomNode("__MeshDrawer_GeomNode");
+    _root.attach_new_node(_geomnode);
+  } else {
+    _geomnode->remove_all_geoms();
+  }
   _geomnode->add_geom(_geom);
-  _root.attach_new_node(_geomnode);
   _last_clear_index = budget;
-
-  delete tvertex;
-  delete tnormal;
-  delete tuv;
-  delete tcolor;
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::begin
-//       Access: Published
-//  Description: Pass the current camera node and the root node.
-//               Passing the camera is required to generate
-//               bill boards that face it.
-////////////////////////////////////////////////////////////////////
+/**
+ * Pass the current camera node and the root node.  Passing the camera is
+ * required to generate bill boards that face it.
+ */
 void MeshDrawer::begin(NodePath camera, NodePath render) {
   // sanity check
   assert(render.get_error_type() == NodePath::ET_ok);
@@ -128,12 +126,9 @@ void MeshDrawer::begin(NodePath camera, NodePath render) {
 
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::end
-//       Access: Published
-//  Description: Finish the drawing and clearing off the remaining
-//               vertexes.  
-////////////////////////////////////////////////////////////////////
+/**
+ * Finish the drawing and clearing off the remaining vertexes.
+ */
 void MeshDrawer::end() {
 
   // clear the unused triangles at the end of the buffer
@@ -153,14 +148,11 @@ void MeshDrawer::end() {
 
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::particle
-//       Access: Published
-//  Description: Draws a particle that is sort of like a bill board
-//               but has an extra rotation component.
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
-void MeshDrawer::particle(const LVector3 &pos, const LVector4 &frame, PN_stdfloat size, 
+/**
+ * Draws a particle that is sort of like a bill board but has an extra
+ * rotation component.  Frame contains u,v,u-size,v-size quadruple.
+ */
+void MeshDrawer::particle(const LVector3 &pos, const LVector4 &frame, PN_stdfloat size,
   const LVector4 &color, PN_stdfloat rotation) {
 
   rotation = rotation / 57.29578;
@@ -185,14 +177,11 @@ void MeshDrawer::particle(const LVector3 &pos, const LVector4 &frame, PN_stdfloa
     v1, color, LVector2(u,v));
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::blended_particle
-//       Access: Published
-//  Description: Works just like particle but accepts 2 frames and
-//               a blend (from 0 to 1) component between them
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
-void MeshDrawer::blended_particle(const LVector3 &pos, const LVector4 &frame1, 
+/**
+ * Works just like particle but accepts 2 frames and a blend (from 0 to 1)
+ * component between them Frame contains u,v,u-size,v-size quadruple.
+ */
+void MeshDrawer::blended_particle(const LVector3 &pos, const LVector4 &frame1,
   const LVector4 &frame2, PN_stdfloat blend, PN_stdfloat size, const LVector4 &color, PN_stdfloat rotation) {
 
   LVector4 c2 = color;
@@ -204,14 +193,11 @@ void MeshDrawer::blended_particle(const LVector3 &pos, const LVector4 &frame1,
 
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::billboard
-//       Access: Published
-//  Description: Draws a billboard - particle with no rotation.
-//               Billboards always face the camera.
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
-void MeshDrawer::billboard(const LVector3 &pos, const LVector4 &frame, PN_stdfloat size, 
+/**
+ * Draws a billboard - particle with no rotation.  Billboards always face the
+ * camera.  Frame contains u,v,u-size,v-size quadruple.
+ */
+void MeshDrawer::billboard(const LVector3 &pos, const LVector4 &frame, PN_stdfloat size,
   const LVector4 &_color) {
 
   LVector3 v1 = pos + _b1*size;
@@ -223,7 +209,7 @@ void MeshDrawer::billboard(const LVector3 &pos, const LVector4 &frame, PN_stdflo
   PN_stdfloat v = frame.get_y();
   PN_stdfloat us = frame.get_z();
   PN_stdfloat vs = frame.get_w();
-  
+
   tri(
     v1, _color, LVector2(u,v),
     v2, _color, LVector2(u+us,v),
@@ -235,31 +221,24 @@ void MeshDrawer::billboard(const LVector3 &pos, const LVector4 &frame, PN_stdflo
 }
 
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::segment
-//       Access: Published
-//  Description: Draws a segment a line with a thickness. That has
-//               billboarding effect.
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
+/**
+ * Draws a segment a line with a thickness.  That has billboarding effect.
+ * Frame contains u,v,u-size,v-size quadruple.
+ */
 void MeshDrawer::segment(const LVector3 &start, const LVector3 &stop, const LVector4 &frame,
                          PN_stdfloat thickness, const LVector4 &color) {
   link_segment(start, frame, thickness, color);
   link_segment(stop, frame, thickness, color);
   link_segment_end(frame, color);
 }
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::cross_segment
-//       Access: Published
-//  Description: Draws a segment a line with a thickness.  This
-//               segment does not use the bill boarding behavior
-//               and instead draws 2 planes in a cross.
-//               Stars at start and ends at stop.
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
+/**
+ * Draws a segment a line with a thickness.  This segment does not use the
+ * bill boarding behavior and instead draws 2 planes in a cross.  Stars at
+ * start and ends at stop.  Frame contains u,v,u-size,v-size quadruple.
+ */
 void MeshDrawer::cross_segment(const LVector3 &start, const LVector3 &stop, const LVector4 &frame,
                                PN_stdfloat thickness, const LVector4 &color) {
-  
+
   PN_stdfloat u = frame.get_x();
   PN_stdfloat v = frame.get_y();
   PN_stdfloat us = frame.get_z();
@@ -294,14 +273,11 @@ void MeshDrawer::cross_segment(const LVector3 &start, const LVector3 &stop, cons
 
 
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::uneven_segment
-//       Access: Published
-//  Description: Draws a segment a line with different thickness
-//               and color on both sides.
-//               Stars at start and ends at stop.
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
+/**
+ * Draws a segment a line with different thickness and color on both sides.
+ * Stars at start and ends at stop.  Frame contains u,v,u-size,v-size
+ * quadruple.
+ */
 void MeshDrawer::uneven_segment(const LVector3 &start, const LVector3 &stop,
   const LVector4 &frame, PN_stdfloat thickness_start, const LVector4 &color_start,
   PN_stdfloat thickness_stop, const LVector4 &color_stop) {
@@ -310,24 +286,24 @@ void MeshDrawer::uneven_segment(const LVector3 &start, const LVector3 &stop,
   PN_stdfloat v = frame.get_y();
   PN_stdfloat us = frame.get_z();
   PN_stdfloat vs = frame.get_w();
-  
+
   LVector3 v1 = start - _up*thickness_start;
   LVector3 v2 = stop - _up*thickness_stop;
   LVector3 v3 = stop + _up*thickness_stop;
   LVector3 v4 = start + _up*thickness_start;
-  
+
   tri(v1, color_start, LVector2(u,v),
       v2, color_stop, LVector2(u+us,v),
       v3, color_stop, LVector2(u+us,v+vs));
   tri(v3, color_stop, LVector2(u+us,v+vs),
       v4, color_start, LVector2(u,v+vs),
       v1, color_start, LVector2(u,v));
-  
+
   v1 = start - _right*thickness_start;
   v2 = stop - _right*thickness_stop;
   v3 = stop + _right*thickness_stop;
   v4 = start + _right*thickness_start;
-  
+
   tri(v1, color_start, LVector2(u,v),
       v2, color_stop, LVector2(u+us,v),
       v3, color_stop, LVector2(u+us,v+vs));
@@ -336,12 +312,10 @@ void MeshDrawer::uneven_segment(const LVector3 &start, const LVector3 &stop,
       v1, color_start, LVector2(u,v));
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::explosion
-//       Access: Published
-//  Description: Draws number of particles in a sphere like emitter.
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
+/**
+ * Draws number of particles in a sphere like emitter.  Frame contains
+ * u,v,u-size,v-size quadruple.
+ */
 void MeshDrawer::explosion(
   const LVector3 &pos, const LVector4 &frame, PN_stdfloat size, const LVector4 &_color,
   int seed, int number, PN_stdfloat distance) {
@@ -355,13 +329,10 @@ void MeshDrawer::explosion(
   }
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::stream
-//       Access: Published
-//  Description: Draws a number of particles in a big line with a
-//               shift dictated by the offset.
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
+/**
+ * Draws a number of particles in a big line with a shift dictated by the
+ * offset.  Frame contains u,v,u-size,v-size quadruple.
+ */
 void MeshDrawer::stream(const LVector3 &start, const LVector3 &stop, const LVector4 &frame, PN_stdfloat size, const LVector4 &_color,
         int number, PN_stdfloat offset) {
 
@@ -378,16 +349,12 @@ void MeshDrawer::stream(const LVector3 &start, const LVector3 &stop, const LVect
 
 
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::geometry
-//       Access: Published
-//  Description: Draws the geometry that is inside this node path into
-//               the MeshDrawer object.  This performs a similar
-//               functions as RigidBodyCombiner but for very
-//               dynamic situations that share the same texture
-//               like physcal chunks of explosions.  
-//               It can be a little slow 
-////////////////////////////////////////////////////////////////////
+/**
+ * Draws the geometry that is inside this node path into the MeshDrawer
+ * object.  This performs a similar functions as RigidBodyCombiner but for
+ * very dynamic situations that share the same texture like physcal chunks of
+ * explosions.  It can be a little slow
+ */
 void MeshDrawer::geometry(NodePath draw_node) {
   assert(_render.get_error_type() == NodePath::ET_ok);
 
@@ -446,14 +413,10 @@ void MeshDrawer::geometry(NodePath draw_node) {
 
 
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::link_segment
-//       Access: Published
-//  Description: Stars or continues linked segment.
-//               Control position, frame, thickness and color with
-//               parameters.
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
+/**
+ * Stars or continues linked segment.  Control position, frame, thickness and
+ * color with parameters.  Frame contains u,v,u-size,v-size quadruple.
+ */
 void MeshDrawer::
 link_segment(const LVector3 &pos, const LVector4 &frame,
          PN_stdfloat thickness, const LVector4 &color) {
@@ -492,8 +455,9 @@ link_segment(const LVector3 &pos, const LVector4 &frame,
   LVector3 cam_stop3d = _camera.get_relative_point(_render, stop);
   LPoint2 cam_stop2d = LVector2();
 
-  PT(Camera) camera = DCAST(Camera, _camera.node());
-  PT(Lens) lens = camera->get_lens();
+  const Camera *camera;
+  DCAST_INTO_V(camera, _camera.node());
+  const Lens *lens = camera->get_lens();
 
   lens->project(cam_start3d, cam_start2d);
   lens->project(cam_stop3d, cam_stop2d);
@@ -506,9 +470,8 @@ link_segment(const LVector3 &pos, const LVector4 &frame,
   LVector3 now_v2 = stop + _b2*(PN_stdfloat)(thickness*sin(rotation)) + _b3*(PN_stdfloat)(thickness*cos(rotation));
   LVector3 now_v3 = stop + _b3*(PN_stdfloat)(thickness*sin(rotation)) + _b4*(PN_stdfloat)(thickness*cos(rotation));
 
-  // mark the segment we going to draw
-  // we need to draw it when we know what the next segment looks like
-  // because it can bend it a little
+  // mark the segment we going to draw we need to draw it when we know what
+  // the next segment looks like because it can bend it a little
   if(_at_start==1) {
     _last_v1 = now_v1;
     _last_v2 = now_v2;
@@ -549,14 +512,11 @@ link_segment(const LVector3 &pos, const LVector4 &frame,
   _last_color = color;
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: MeshDrawer::link_segment_end
-//       Access: Published
-//  Description: Finish drawing linked segments, needs at least
-//               two calls to link_segment before it can end
-//               the linked segment.
-//               Frame contains u,v,u-size,v-size quadruple.
-////////////////////////////////////////////////////////////////////
+/**
+ * Finish drawing linked segments, needs at least two calls to link_segment
+ * before it can end the linked segment.  Frame contains u,v,u-size,v-size
+ * quadruple.
+ */
 void MeshDrawer::link_segment_end(const LVector4 &frame, const LVector4 &color)
 {
   PN_stdfloat u = frame.get_x();

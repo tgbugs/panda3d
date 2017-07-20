@@ -10,12 +10,12 @@ the composition process isn't simply a question of concatenating them:
 you have to somehow make them work together.  I suspect that there
 exists some fairly simple framework that would make this automatable.
 However, until I write some more filters myself, I won't know what
-that framework is.  Until then, I'll settle for this 
+that framework is.  Until then, I'll settle for this
 clunky approach.  - Josh
 
 """
 
-from FilterManager import FilterManager
+from .FilterManager import FilterManager
 from panda3d.core import LVecBase4, LPoint2
 from panda3d.core import Filename
 from panda3d.core import AuxBitplaneAttrib
@@ -337,13 +337,13 @@ class CommonFilters:
             if ("Inverted" in configuration):
                 text += "  o_color = float4(1, 1, 1, 1) - o_color;\n"
             text += "}\n"
-            
+
             self.finalQuad.setShader(Shader.make(text, Shader.SL_Cg))
             for tex in self.textures:
                 self.finalQuad.setShaderInput("tx"+tex, self.textures[tex])
-            
+
             self.task = taskMgr.add(self.update, "common-filters-update")
-        
+
         if (changed == "CartoonInk") or fullrebuild:
             if ("CartoonInk" in configuration):
                 c = configuration["CartoonInk"]
@@ -363,13 +363,13 @@ class CommonFilters:
                 self.bloom[0].setShaderInput("trigger", bloomconf.mintrigger, 1.0/(bloomconf.maxtrigger-bloomconf.mintrigger), 0.0, 0.0)
                 self.bloom[0].setShaderInput("desat", bloomconf.desat)
                 self.bloom[3].setShaderInput("intensity", intensity, intensity, intensity, intensity)
-        
+
         if (changed == "VolumetricLighting") or fullrebuild:
             if ("VolumetricLighting" in configuration):
                 config = configuration["VolumetricLighting"]
                 tcparam = config.density / float(config.numsamples)
                 self.finalQuad.setShaderInput("vlparams", tcparam, config.decay, config.exposure, 0.0)
-        
+
         if (changed == "AmbientOcclusion") or fullrebuild:
             if ("AmbientOcclusion" in configuration):
                 config = configuration["AmbientOcclusion"]
@@ -536,3 +536,24 @@ class CommonFilters:
             del self.configuration["GammaAdjust"]
             return self.reconfigure((old_gamma != 1.0), "GammaAdjust")
         return True
+
+    #snake_case alias:
+    del_cartoon_ink = delCartoonInk
+    set_half_pixel_shift = setHalfPixelShift
+    del_half_pixel_shift = delHalfPixelShift
+    set_inverted = setInverted
+    del_inverted = delInverted
+    del_view_glow = delViewGlow
+    set_volumetric_lighting = setVolumetricLighting
+    del_gamma_adjust = delGammaAdjust
+    set_bloom = setBloom
+    set_view_glow = setViewGlow
+    set_ambient_occlusion = setAmbientOcclusion
+    set_cartoon_ink = setCartoonInk
+    del_bloom = delBloom
+    del_ambient_occlusion = delAmbientOcclusion
+    load_shader = loadShader
+    set_blur_sharpen = setBlurSharpen
+    del_blur_sharpen = delBlurSharpen
+    del_volumetric_lighting = delVolumetricLighting
+    set_gamma_adjust = setGammaAdjust

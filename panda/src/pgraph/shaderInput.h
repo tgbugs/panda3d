@@ -1,23 +1,22 @@
-// Filename: shaderInput.h
-// Created by: jyelon (01Sep05)
-// Updated by: fperazzi, PandaSE (06Apr10)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file shaderInput.h
+ * @author jyelon
+ * @date 2005-09-01
+ * @author fperazzi, PandaSE
+ * @date 2010-04-06
+ */
 
 #ifndef SHADERINPUT_H
 #define SHADERINPUT_H
 
 #include "pandabase.h"
-#include "typedWritableReferenceCount.h"
 #include "pointerTo.h"
 #include "internalName.h"
 #include "paramValue.h"
@@ -31,17 +30,13 @@
 #include "samplerState.h"
 #include "shader.h"
 #include "texture.h"
+#include "shaderBuffer.h"
 
-////////////////////////////////////////////////////////////////////
-//       Class : ShaderInput
-// Description : This is a small container class that can hold any
-//               one of the value types that can be passed as input
-//               to a shader.
-////////////////////////////////////////////////////////////////////
-class EXPCL_PANDA_PGRAPH ShaderInput : public TypedWritableReferenceCount {
-public:
-  INLINE ~ShaderInput();
-
+/**
+ * This is a small container class that can hold any one of the value types
+ * that can be passed as input to a shader.
+ */
+class EXPCL_PANDA_PGRAPH ShaderInput {
 PUBLISHED:
   // Used when binding texture images.
   enum AccessFlags {
@@ -50,10 +45,11 @@ PUBLISHED:
     A_layered = 0x04,
   };
 
-  static const ShaderInput *get_blank();
+  static const ShaderInput &get_blank();
   INLINE ShaderInput(CPT_InternalName name, int priority=0);
   INLINE ShaderInput(CPT_InternalName name, Texture *tex, int priority=0);
   INLINE ShaderInput(CPT_InternalName name, ParamValueBase *param, int priority=0);
+  INLINE ShaderInput(CPT_InternalName name, ShaderBuffer *buf, int priority=0);
   INLINE ShaderInput(CPT_InternalName name, const PTA_float &ptr, int priority=0);
   INLINE ShaderInput(CPT_InternalName name, const PTA_LVecBase4f &ptr, int priority=0);
   INLINE ShaderInput(CPT_InternalName name, const PTA_LVecBase3f &ptr, int priority=0);
@@ -98,8 +94,15 @@ PUBLISHED:
     M_numeric,
     M_texture_sampler,
     M_param,
-    M_texture_image
+    M_texture_image,
+    M_buffer,
   };
+
+  INLINE bool operator == (const ShaderInput &other) const;
+  INLINE bool operator != (const ShaderInput &other) const;
+  INLINE bool operator < (const ShaderInput &other) const;
+
+  size_t add_hash(size_t hash) const;
 
   INLINE const InternalName *get_name() const;
 
@@ -113,7 +116,10 @@ PUBLISHED:
   const SamplerState &get_sampler() const;
 
 public:
+  ShaderInput() DEFAULT_CTOR;
+
   INLINE ParamValueBase *get_param() const;
+  INLINE TypedWritableReferenceCount *get_value() const;
 
   static void register_with_read_factory();
 
@@ -125,26 +131,9 @@ private:
   int _priority;
   int _type;
 
-public:
-  static TypeHandle get_class_type() {
-    return _type_handle;
-  }
-  static void init_type() {
-    TypedWritableReferenceCount::init_type();
-    register_type(_type_handle, "ShaderInput",
-                  TypedWritableReferenceCount::get_class_type());
-  }
-  virtual TypeHandle get_type() const {
-    return get_class_type();
-  }
-  virtual TypeHandle force_init_type() {init_type(); return get_class_type();}
-
-private:
-  static TypeHandle _type_handle;
+  friend class ShaderAttrib;
 };
-
 
 #include "shaderInput.I"
 
 #endif  // SHADERINPUT_H
-

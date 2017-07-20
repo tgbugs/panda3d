@@ -1,27 +1,23 @@
-// Filename: globPattern.cxx
-// Created by:  drose (30May00)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file globPattern.cxx
+ * @author drose
+ * @date 2000-05-30
+ */
 
 #include "globPattern.h"
 #include <ctype.h>
 
-////////////////////////////////////////////////////////////////////
-//     Function: GlobPattern::has_glob_characters
-//       Access: Published
-//  Description: Returns true if the pattern includes any special
-//               globbing characters, or false if it is just a literal
-//               string.
-////////////////////////////////////////////////////////////////////
+/**
+ * Returns true if the pattern includes any special globbing characters, or
+ * false if it is just a literal string.
+ */
 bool GlobPattern::
 has_glob_characters() const {
   string::const_iterator pi;
@@ -44,15 +40,12 @@ has_glob_characters() const {
   return false;
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GlobPattern::get_const_prefix
-//       Access: Published
-//  Description: Returns the initial part of the pattern before the
-//               first glob character.  Since many glob patterns begin
-//               with a sequence of static characters and end with one
-//               or more glob characters, this can be used to
-//               optimized searches through sorted indices.
-////////////////////////////////////////////////////////////////////
+/**
+ * Returns the initial part of the pattern before the first glob character.
+ * Since many glob patterns begin with a sequence of static characters and end
+ * with one or more glob characters, this can be used to optimized searches
+ * through sorted indices.
+ */
 string GlobPattern::
 get_const_prefix() const {
   string prefix;
@@ -77,24 +70,19 @@ get_const_prefix() const {
   return prefix += _pattern.substr(q, p - q);
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GlobPattern::match_files
-//       Access: Published
-//  Description: Treats the GlobPattern as a filename pattern, and
-//               returns a list of any actual files that match the
-//               pattern.  This is the behavior of the standard Posix
-//               glob() function.  Any part of the filename may
-//               contain glob characters, including intermediate
-//               directory names.
-//
-//               If cwd is specified, it is the directory that
-//               relative filenames are taken to be relative to;
-//               otherwise, the actual current working directory is
-//               assumed.
-//
-//               The return value is the number of files matched,
-//               which are added to the results vector.
-////////////////////////////////////////////////////////////////////
+/**
+ * Treats the GlobPattern as a filename pattern, and returns a list of any
+ * actual files that match the pattern.  This is the behavior of the standard
+ * Posix glob() function.  Any part of the filename may contain glob
+ * characters, including intermediate directory names.
+ *
+ * If cwd is specified, it is the directory that relative filenames are taken
+ * to be relative to; otherwise, the actual current working directory is
+ * assumed.
+ *
+ * The return value is the number of files matched, which are added to the
+ * results vector.
+ */
 int GlobPattern::
 match_files(vector_string &results, const Filename &cwd) const {
   string prefix, pattern, suffix;
@@ -111,7 +99,7 @@ match_files(vector_string &results, const Filename &cwd) const {
     pattern = source;
   } else {
     pattern = source.substr(0, slash);
-    suffix = source.substr(slash + 1);
+    suffix = source.substr(slash);
   }
 
   GlobPattern glob(pattern);
@@ -119,11 +107,9 @@ match_files(vector_string &results, const Filename &cwd) const {
   return glob.r_match_files(prefix, suffix, results, cwd);
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GlobPattern::r_match_files
-//       Access: Private
-//  Description: The recursive implementation of match_files().
-////////////////////////////////////////////////////////////////////
+/**
+ * The recursive implementation of match_files().
+ */
 int GlobPattern::
 r_match_files(const Filename &prefix, const string &suffix,
               vector_string &results, const Filename &cwd) {
@@ -132,9 +118,19 @@ r_match_files(const Filename &prefix, const string &suffix,
   size_t slash = suffix.find('/');
   if (slash == string::npos) {
     next_pattern = suffix;
+  } else if (slash + 1 == suffix.size()) {
+    // If the slash is at the end, we need to keep it, since it indicates that
+    // we only want to match directories.
+    next_pattern = suffix.substr(0, slash);
+    next_suffix = "/";
   } else {
     next_pattern = suffix.substr(0, slash);
     next_suffix = suffix.substr(slash + 1);
+  }
+
+  if (_pattern == "**" && next_pattern == "**") {
+    // Collapse consecutive globstar patterns.
+    return r_match_files(prefix, next_suffix, results, cwd);
   }
 
   Filename parent_dir;
@@ -148,25 +144,30 @@ r_match_files(const Filename &prefix, const string &suffix,
   next_glob.set_case_sensitive(_case_sensitive);
 
   if (!has_glob_characters()) {
-    // If there are no special characters in the pattern, it's a
-    // literal match.
+    // If there are no special characters in the pattern, it's a literal
+    // match.
+    Filename fn(parent_dir, _pattern);
     if (suffix.empty()) {
       // Time to stop.
-      Filename single_filename(parent_dir, _pattern);
-      if (single_filename.exists()) {
+      if (fn.exists()) {
         results.push_back(Filename(prefix, _pattern));
         return 1;
       }
       return 0;
+    } else if (fn.is_directory()) {
+      // If the pattern ends with a slash, match a directory only.
+      if (suffix == "/") {
+        results.push_back(Filename(prefix, _pattern + "/"));
+        return 1;
+      } else {
+        return next_glob.r_match_files(Filename(prefix, _pattern),
+                                       next_suffix, results, cwd);
+      }
     }
-
-    return next_glob.r_match_files(Filename(prefix, _pattern),
-                                   next_suffix, results, cwd);
-
   }
 
-  // If there *are* special glob characters, we must attempt to
-  // match the pattern against the files in this directory.
+  // If there *are* special glob characters, we must attempt to match the
+  // pattern against the files in this directory.
 
   vector_string dir_files;
   if (!parent_dir.scan_directory(dir_files)) {
@@ -174,9 +175,27 @@ r_match_files(const Filename &prefix, const string &suffix,
     return 0;
   }
 
-  // Now go through each file in the directory looking for one that
-  // matches the pattern.
+  // Now go through each file in the directory looking for one that matches
+  // the pattern.
   int num_matched = 0;
+
+  // A globstar pattern matches zero or more directories.
+  if (_pattern == "**") {
+    // Try to match this directory (as if the globstar wasn't there)
+    if (suffix.empty()) {
+      // This is a directory.  Add it.
+      results.push_back(Filename(prefix));
+      num_matched++;
+    } else if (suffix == "/") {
+      // Keep the trailing slash, but be sure not to duplicate it.
+      results.push_back(Filename(prefix, ""));
+      num_matched++;
+    } else {
+      num_matched += next_glob.r_match_files(prefix, next_suffix, results, cwd);
+    }
+    next_suffix = suffix;
+    next_glob = *this;
+  }
 
   vector_string::const_iterator fi;
   for (fi = dir_files.begin(); fi != dir_files.end(); ++fi) {
@@ -184,12 +203,20 @@ r_match_files(const Filename &prefix, const string &suffix,
     if (_pattern[0] == '.' || (local_file.empty() || local_file[0] != '.')) {
       if (matches(local_file)) {
         // We have a match; continue.
-        if (suffix.empty()) {
+        if (Filename(parent_dir, local_file).is_directory()) {
+          if (suffix.empty() && _pattern != "**") {
+            results.push_back(Filename(prefix, local_file));
+            num_matched++;
+          } else if (suffix == "/" && _pattern != "**") {
+            results.push_back(Filename(prefix, local_file + "/"));
+            num_matched++;
+          } else {
+            num_matched += next_glob.r_match_files(Filename(prefix, local_file),
+                                                   next_suffix, results, cwd);
+          }
+        } else if (suffix.empty()) {
           results.push_back(Filename(prefix, local_file));
           num_matched++;
-        } else {
-          num_matched += next_glob.r_match_files(Filename(prefix, local_file),
-                                                 next_suffix, results, cwd);
         }
       }
     }
@@ -198,23 +225,19 @@ r_match_files(const Filename &prefix, const string &suffix,
   return num_matched;
 }
 
-////////////////////////////////////////////////////////////////////
-//     Function: GlobPattern::matches_substr
-//       Access: Private
-//  Description: The recursive implementation of matches().  This
-//               returns true if the pattern substring [pi, pend)
-//               matches the candidate substring [ci, cend), false
-//               otherwise.
-////////////////////////////////////////////////////////////////////
+/**
+ * The recursive implementation of matches().  This returns true if the
+ * pattern substring [pi, pend) matches the candidate substring [ci, cend),
+ * false otherwise.
+ */
 bool GlobPattern::
 matches_substr(string::const_iterator pi, string::const_iterator pend,
                string::const_iterator ci, string::const_iterator cend) const {
-  // If we run out of pattern or candidate string, it's a match only
-  // if they both ran out at the same time.
+  // If we run out of pattern or candidate string, it's a match only if they
+  // both ran out at the same time.
   if (pi == pend || ci == cend) {
-    // A special exception: we allow ci to reach the end before pi,
-    // only if pi is one character before the end and that last
-    // character is '*'.
+    // A special exception: we allow ci to reach the end before pi, only if pi
+    // is one character before the end and that last character is '*'.
     if ((ci == cend) && (std::distance(pi, pend) == 1) && (*pi) == '*') {
       return true;
     }
@@ -224,24 +247,23 @@ matches_substr(string::const_iterator pi, string::const_iterator pend,
   switch (*pi) {
 
   case '*':
-    // A '*' in the pattern string means to match any sequence of zero
-    // or more characters in the candidate string.  This means we have
-    // to recurse twice: either consume one character of the candidate
-    // string and continue to try matching the *, or stop trying to
-    // match the * here.
+    // A '*' in the pattern string means to match any sequence of zero or more
+    // characters in the candidate string.  This means we have to recurse
+    // twice: either consume one character of the candidate string and
+    // continue to try matching the *, or stop trying to match the * here.
     if (_nomatch_chars.find(*ci) == string::npos) {
       return
         matches_substr(pi, pend, ci + 1, cend) ||
         matches_substr(pi + 1, pend, ci, cend);
     } else {
-      // On the other hand, if this is one of the nomatch chars, we
-      // can only stop here.
+      // On the other hand, if this is one of the nomatch chars, we can only
+      // stop here.
       return matches_substr(pi + 1, pend, ci, cend);
     }
 
   case '?':
-    // A '?' in the pattern string means to match exactly one
-    // character in the candidate string.  That's easy.
+    // A '?' in the pattern string means to match exactly one character in the
+    // candidate string.  That's easy.
     return matches_substr(pi + 1, pend, ci + 1, cend);
 
   case '[':
@@ -287,16 +309,13 @@ matches_substr(string::const_iterator pi, string::const_iterator pend,
 }
 
 
-////////////////////////////////////////////////////////////////////
-//     Function: GlobPattern::matches_set
-//       Access: Private
-//  Description: Called when an unescaped open square bracked is
-//               scanned, this is called with pi positioned after the
-//               opening square bracket, scans the set sequence,
-//               leaving pi positioned on the closing square bracket,
-//               and returns true if the indicated character matches
-//               the set of characters indicated, false otherwise.
-////////////////////////////////////////////////////////////////////
+/**
+ * Called when an unescaped open square bracked is scanned, this is called
+ * with pi positioned after the opening square bracket, scans the set
+ * sequence, leaving pi positioned on the closing square bracket, and returns
+ * true if the indicated character matches the set of characters indicated,
+ * false otherwise.
+ */
 bool GlobPattern::
 matches_set(string::const_iterator &pi, string::const_iterator pend,
             char ch) const {
@@ -334,8 +353,8 @@ matches_set(string::const_iterator &pi, string::const_iterator pend,
         char end = (*pi);
         ++pi;
 
-        if ((ch >= start && ch <= end) || 
-            (!_case_sensitive && 
+        if ((ch >= start && ch <= end) ||
+            (!_case_sensitive &&
              ((tolower(ch) >= start && tolower(ch) <= end) ||
               (toupper(ch) >= start && toupper(ch) <= end)))) {
           matched = true;
@@ -351,6 +370,3 @@ matches_set(string::const_iterator &pi, string::const_iterator pend,
 
   return matched;
 }
-
-
-

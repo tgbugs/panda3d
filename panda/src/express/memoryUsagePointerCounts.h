@@ -1,34 +1,29 @@
-// Filename: memoryUsagePointerCounts.h
-// Created by:  drose (04Jun01)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file memoryUsagePointerCounts.h
+ * @author drose
+ * @date 2001-06-04
+ */
 
 #ifndef MEMORYUSAGEPOINTERCOUNTS_H
 #define MEMORYUSAGEPOINTERCOUNTS_H
 
 #include "pandabase.h"
 
-#ifdef DO_MEMORY_USAGE
-
 class MemoryInfo;
 
-////////////////////////////////////////////////////////////////////
-//       Class : MemoryUsagePointerCounts
-// Description : This is a supporting class for MemoryUsage.  It
-//               tracks the relative counts of a number of pointers of
-//               some type (or age), for use by TypeHistogram and
-//               AgeHistogram.  It's not exported from the DLL, and it
-//               doesn't even exist if we're compiling NDEBUG.
-////////////////////////////////////////////////////////////////////
+/**
+ * This is a supporting class for MemoryUsage.  It tracks the relative counts
+ * of a number of pointers of some type (or age), for use by TypeHistogram and
+ * AgeHistogram.  It's not exported from the DLL, and it doesn't even exist if
+ * we're compiling NDEBUG.
+ */
 class MemoryUsagePointerCounts {
 public:
   INLINE MemoryUsagePointerCounts();
@@ -58,7 +53,4 @@ INLINE ostream &operator << (ostream &out, const MemoryUsagePointerCounts &c);
 
 #include "memoryUsagePointerCounts.I"
 
-#endif  // DO_MEMORY_USAGE
-
 #endif
-

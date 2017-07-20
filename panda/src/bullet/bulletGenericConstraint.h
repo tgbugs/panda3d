@@ -1,16 +1,15 @@
-// Filename: bulletGenericConstraint.h
-// Created by:  enn0x (02Mar10)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file bulletGenericConstraint.h
+ * @author enn0x
+ * @date 2010-03-02
+ */
 
 #ifndef __BULLET_GENERIC_CONSTRAINT_H__
 #define __BULLET_GENERIC_CONSTRAINT_H__
@@ -28,14 +27,13 @@
 
 class BulletRigidBodyNode;
 
-////////////////////////////////////////////////////////////////////
-//       Class : BulletGenericConstraint
-// Description : 
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 class EXPCL_PANDABULLET BulletGenericConstraint : public BulletConstraint {
 
 PUBLISHED:
-  BulletGenericConstraint(const BulletRigidBodyNode *node_a, 
+  BulletGenericConstraint(const BulletRigidBodyNode *node_a,
                           const TransformState *frame_a,
                           bool use_frame_a);
   BulletGenericConstraint(const BulletRigidBodyNode *node_a,
@@ -63,22 +61,25 @@ PUBLISHED:
   INLINE CPT(TransformState) get_frame_a() const;
   INLINE CPT(TransformState) get_frame_b() const;
 
+  MAKE_PROPERTY(translational_limit_motor, get_translational_limit_motor);
+  MAKE_PROPERTY(frame_a, get_frame_a);
+  MAKE_PROPERTY(frame_b, get_frame_b);
+
 public:
   virtual btTypedConstraint *ptr() const;
 
 private:
   btGeneric6DofConstraint *_constraint;
 
-//TODO btRotationalLimitMotor *  getRotationalLimitMotor (int index) 
+// TODO btRotationalLimitMotor *  getRotationalLimitMotor (int index)
 
-////////////////////////////////////////////////////////////////////
 public:
   static TypeHandle get_class_type() {
     return _type_handle;
   }
   static void init_type() {
     BulletConstraint::init_type();
-    register_type(_type_handle, "BulletGenericConstraint", 
+    register_type(_type_handle, "BulletGenericConstraint",
                   BulletConstraint::get_class_type());
   }
   virtual TypeHandle get_type() const {

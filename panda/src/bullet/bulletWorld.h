@@ -1,16 +1,15 @@
-// Filename: bulletWorld.h
-// Created by:  enn0x (23Jan10)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file bulletWorld.h
+ * @author enn0x
+ * @date 2010-01-23
+ */
 
 #ifndef __BULLET_WORLD_H__
 #define __BULLET_WORLD_H__
@@ -45,10 +44,9 @@ class BulletSoftBodyWorldInfo;
 
 extern PT(CallbackObject) bullet_contact_added_callback;
 
-////////////////////////////////////////////////////////////////////
-//       Class : BulletWorld
-// Description : 
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 class EXPCL_PANDABULLET BulletWorld : public TypedReferenceCount {
 
 PUBLISHED:
@@ -67,8 +65,9 @@ PUBLISHED:
   INLINE void set_debug_node(BulletDebugNode *node);
   INLINE void clear_debug_node();
   INLINE BulletDebugNode *get_debug_node() const;
+  INLINE bool has_debug_node() const;
 
-  // Attach/Remove
+  // AttachRemove
   void attach(TypedObject *object);
   void attach_constraint(BulletConstraint *constraint, bool linked_collision=false);
 
@@ -161,6 +160,17 @@ PUBLISHED:
     FA_callback,
   };
 
+  MAKE_PROPERTY(gravity, get_gravity, set_gravity);
+  MAKE_PROPERTY(world_info, get_world_info);
+  MAKE_PROPERTY2(debug_node, has_debug_node, get_debug_node, set_debug_node, clear_debug_node);
+  MAKE_SEQ_PROPERTY(ghosts, get_num_ghosts, get_ghost);
+  MAKE_SEQ_PROPERTY(rigid_bodies, get_num_rigid_bodies, get_rigid_body);
+  MAKE_SEQ_PROPERTY(soft_bodies, get_num_soft_bodies, get_soft_body);
+  MAKE_SEQ_PROPERTY(characters, get_num_characters, get_character);
+  MAKE_SEQ_PROPERTY(vehicles, get_num_vehicles, get_vehicle);
+  MAKE_SEQ_PROPERTY(constraints, get_num_constraints, get_constraint);
+  MAKE_SEQ_PROPERTY(manifolds, get_num_manifolds, get_manifold);
+
 PUBLISHED: // Deprecated methods, will become private soon
   void attach_ghost(BulletGhostNode *node);
   void remove_ghost(BulletGhostNode *node);
@@ -250,14 +260,13 @@ private:
   BulletVehicles _vehicles;
   BulletConstraints _constraints;
 
-////////////////////////////////////////////////////////////////////
 public:
   static TypeHandle get_class_type() {
     return _type_handle;
   }
   static void init_type() {
     TypedReferenceCount::init_type();
-    register_type(_type_handle, "BulletWorld", 
+    register_type(_type_handle, "BulletWorld",
                   TypedReferenceCount::get_class_type());
   }
   virtual TypeHandle get_type() const {

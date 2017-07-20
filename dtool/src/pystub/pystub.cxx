@@ -1,16 +1,15 @@
-// Filename: pystub.cxx
-// Created by:  drose (09Aug00)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file pystub.cxx
+ * @author drose
+ * @date 2000-08-09
+ */
 
 #include "pystub.h"
 
@@ -33,6 +32,7 @@ extern "C" {
   EXPCL_PYSTUB int PyDict_GetItem(...);
   EXPCL_PYSTUB int PyDict_GetItemString(...);
   EXPCL_PYSTUB int PyDict_New(...);
+  EXPCL_PYSTUB int PyDict_Next(...);
   EXPCL_PYSTUB int PyDict_SetItem(...);
   EXPCL_PYSTUB int PyDict_SetItemString(...);
   EXPCL_PYSTUB int PyDict_Size(...);
@@ -50,7 +50,6 @@ extern "C" {
   EXPCL_PYSTUB int PyErr_WarnEx(...);
   EXPCL_PYSTUB int PyEval_CallFunction(...);
   EXPCL_PYSTUB int PyEval_CallObjectWithKeywords(...);
-  EXPCL_PYSTUB int PyEval_InitThreads(...);
   EXPCL_PYSTUB int PyEval_RestoreThread(...);
   EXPCL_PYSTUB int PyEval_SaveThread(...);
   EXPCL_PYSTUB int PyFloat_AsDouble(...);
@@ -61,6 +60,7 @@ extern "C" {
   EXPCL_PYSTUB int PyGILState_Ensure(...);
   EXPCL_PYSTUB int PyGILState_Release(...);
   EXPCL_PYSTUB int PyImport_GetModuleDict(...);
+  EXPCL_PYSTUB int PyImport_ImportModule(...);
   EXPCL_PYSTUB int PyInt_AsLong(...);
   EXPCL_PYSTUB int PyInt_AsSsize_t(...);
   EXPCL_PYSTUB int PyInt_FromLong(...);
@@ -90,6 +90,7 @@ extern "C" {
   EXPCL_PYSTUB int PyModule_AddObject(...);
   EXPCL_PYSTUB int PyModule_AddStringConstant(...);
   EXPCL_PYSTUB int PyModule_Create2(...);
+  EXPCL_PYSTUB int PyModule_Create2TraceRefs(...);
   EXPCL_PYSTUB int PyNumber_Check(...);
   EXPCL_PYSTUB int PyNumber_Float(...);
   EXPCL_PYSTUB int PyNumber_Int(...);
@@ -144,18 +145,27 @@ extern "C" {
   EXPCL_PYSTUB int PyType_GenericAlloc(...);
   EXPCL_PYSTUB int PyType_IsSubtype(...);
   EXPCL_PYSTUB int PyType_Ready(...);
+  EXPCL_PYSTUB int PyUnicodeUCS2_AsWideChar(...);
+  EXPCL_PYSTUB int PyUnicodeUCS2_AsWideCharString(...);
+  EXPCL_PYSTUB int PyUnicodeUCS2_CompareWithASCIIString(...);
+  EXPCL_PYSTUB int PyUnicodeUCS2_FromFormat(...);
+  EXPCL_PYSTUB int PyUnicodeUCS2_FromString(...);
   EXPCL_PYSTUB int PyUnicodeUCS2_FromStringAndSize(...);
   EXPCL_PYSTUB int PyUnicodeUCS2_FromWideChar(...);
-  EXPCL_PYSTUB int PyUnicodeUCS2_AsWideChar(...);
   EXPCL_PYSTUB int PyUnicodeUCS2_GetSize(...);
+  EXPCL_PYSTUB int PyUnicodeUCS4_AsWideChar(...);
+  EXPCL_PYSTUB int PyUnicodeUCS4_AsWideCharString(...);
+  EXPCL_PYSTUB int PyUnicodeUCS4_CompareWithASCIIString(...);
+  EXPCL_PYSTUB int PyUnicodeUCS4_FromFormat(...);
+  EXPCL_PYSTUB int PyUnicodeUCS4_FromString(...);
   EXPCL_PYSTUB int PyUnicodeUCS4_FromStringAndSize(...);
   EXPCL_PYSTUB int PyUnicodeUCS4_FromWideChar(...);
-  EXPCL_PYSTUB int PyUnicodeUCS4_AsWideChar(...);
   EXPCL_PYSTUB int PyUnicodeUCS4_GetSize(...);
   EXPCL_PYSTUB int PyUnicode_AsUTF8(...);
   EXPCL_PYSTUB int PyUnicode_AsUTF8AndSize(...);
   EXPCL_PYSTUB int PyUnicode_AsWideChar(...);
   EXPCL_PYSTUB int PyUnicode_AsWideCharString(...);
+  EXPCL_PYSTUB int PyUnicode_CompareWithASCIIString(...);
   EXPCL_PYSTUB int PyUnicode_FromFormat(...);
   EXPCL_PYSTUB int PyUnicode_FromString(...);
   EXPCL_PYSTUB int PyUnicode_FromStringAndSize(...);
@@ -165,23 +175,37 @@ extern "C" {
   EXPCL_PYSTUB int PyUnicode_InternInPlace(...);
   EXPCL_PYSTUB int PyUnicode_Type(...);
   EXPCL_PYSTUB int Py_BuildValue(...);
+  EXPCL_PYSTUB int Py_GetVersion(...);
   EXPCL_PYSTUB int Py_InitModule4(...);
   EXPCL_PYSTUB int Py_InitModule4_64(...);
   EXPCL_PYSTUB int Py_InitModule4TraceRefs(...);
+  EXPCL_PYSTUB int Py_InitModule4TraceRefs_64(...);
   EXPCL_PYSTUB int _PyArg_ParseTuple_SizeT(...);
   EXPCL_PYSTUB int _PyArg_ParseTupleAndKeywords_SizeT(...);
   EXPCL_PYSTUB int _PyArg_Parse_SizeT(...);
+  EXPCL_PYSTUB int _PyErr_BadInternalCall(...);
+  EXPCL_PYSTUB int _PyLong_AsByteArray(...);
   EXPCL_PYSTUB int _PyObject_CallFunction_SizeT(...);
   EXPCL_PYSTUB int _PyObject_CallMethod_SizeT(...);
   EXPCL_PYSTUB int _PyObject_DebugFree(...);
   EXPCL_PYSTUB int _PyObject_Del(...);
+  EXPCL_PYSTUB int _PyObject_FastCallDict(...);
+  EXPCL_PYSTUB int _PyUnicode_AsString(...);
+  EXPCL_PYSTUB int _PyUnicode_AsStringAndSize(...);
+  EXPCL_PYSTUB int _PyUnicode_EqualToASCIIString(...);
+  EXPCL_PYSTUB int _Py_AddToAllObjects(...);
   EXPCL_PYSTUB int _Py_BuildValue_SizeT(...);
   EXPCL_PYSTUB int _Py_Dealloc(...);
+  EXPCL_PYSTUB int _Py_ForgetReference(...);
   EXPCL_PYSTUB int _Py_NegativeRefcount(...);
+  EXPCL_PYSTUB int _Py_NewReference(...);
+  EXPCL_PYSTUB int _Py_PrintReferenceAddresses(...);
+  EXPCL_PYSTUB int _Py_PrintReferences(...);
   EXPCL_PYSTUB int _Py_RefTotal(...);
 
   EXPCL_PYSTUB void Py_Initialize();
   EXPCL_PYSTUB int Py_IsInitialized();
+  EXPCL_PYSTUB void PyEval_InitThreads();
 
   EXPCL_PYSTUB extern void *PyExc_AssertionError;
   EXPCL_PYSTUB extern void *PyExc_AttributeError;
@@ -189,7 +213,10 @@ extern "C" {
   EXPCL_PYSTUB extern void *PyExc_ConnectionError;
   EXPCL_PYSTUB extern void *PyExc_Exception;
   EXPCL_PYSTUB extern void *PyExc_FutureWarning;
+  EXPCL_PYSTUB extern void *PyExc_ImportError;
   EXPCL_PYSTUB extern void *PyExc_IndexError;
+  EXPCL_PYSTUB extern void *PyExc_OSError;
+  EXPCL_PYSTUB extern void *PyExc_OverflowError;
   EXPCL_PYSTUB extern void *PyExc_RuntimeError;
   EXPCL_PYSTUB extern void *PyExc_StandardError;
   EXPCL_PYSTUB extern void *PyExc_StopIteration;
@@ -223,6 +250,7 @@ int PyDict_DelItemString(...) { return 0; }
 int PyDict_GetItem(...) { return 0; }
 int PyDict_GetItemString(...) { return 0; }
 int PyDict_New(...) { return 0; };
+int PyDict_Next(...) { return 0; };
 int PyDict_SetItem(...) { return 0; };
 int PyDict_SetItemString(...) { return 0; };
 int PyDict_Size(...){ return 0; }
@@ -251,6 +279,7 @@ int PyGen_Type(...) { return 0; }
 int PyGILState_Ensure(...) { return 0; }
 int PyGILState_Release(...) { return 0; }
 int PyImport_GetModuleDict(...) { return 0; }
+int PyImport_ImportModule(...) { return 0; }
 int PyInt_AsLong(...) { return 0; }
 int PyInt_AsSsize_t(...) { return 0; }
 int PyInt_FromLong(...) { return 0; }
@@ -280,6 +309,7 @@ int PyModule_AddIntConstant(...) { return 0; };
 int PyModule_AddObject(...) { return 0; };
 int PyModule_AddStringConstant(...) { return 0; };
 int PyModule_Create2(...) { return 0; };
+int PyModule_Create2TraceRefs(...) { return 0; };
 int PyNumber_Check(...) { return 0; }
 int PyNumber_Float(...) { return 0; }
 int PyNumber_Int(...) { return 0; }
@@ -334,18 +364,27 @@ int PyTuple_Type(...) { return 0; };
 int PyType_GenericAlloc(...) { return 0; };
 int PyType_IsSubtype(...) { return 0; }
 int PyType_Ready(...) { return 0; };
+int PyUnicodeUCS2_AsWideChar(...) { return 0; }
+int PyUnicodeUCS2_AsWideCharString(...) { return 0; }
+int PyUnicodeUCS2_CompareWithASCIIString(...) { return 0; }
+int PyUnicodeUCS2_FromFormat(...) { return 0; }
+int PyUnicodeUCS2_FromString(...) { return 0; }
 int PyUnicodeUCS2_FromStringAndSize(...) { return 0; }
 int PyUnicodeUCS2_FromWideChar(...) { return 0; }
-int PyUnicodeUCS2_AsWideChar(...) { return 0; }
 int PyUnicodeUCS2_GetSize(...) { return 0; }
+int PyUnicodeUCS4_AsWideChar(...) { return 0; }
+int PyUnicodeUCS4_AsWideCharString(...) { return 0; }
+int PyUnicodeUCS4_CompareWithASCIIString(...) { return 0; }
+int PyUnicodeUCS4_FromFormat(...) { return 0; }
+int PyUnicodeUCS4_FromString(...) { return 0; }
 int PyUnicodeUCS4_FromStringAndSize(...) { return 0; }
 int PyUnicodeUCS4_FromWideChar(...) { return 0; }
-int PyUnicodeUCS4_AsWideChar(...) { return 0; }
 int PyUnicodeUCS4_GetSize(...) { return 0; }
 int PyUnicode_AsUTF8(...) { return 0; }
 int PyUnicode_AsUTF8AndSize(...) { return 0; }
 int PyUnicode_AsWideChar(...) { return 0; }
 int PyUnicode_AsWideCharString(...) { return 0; }
+int PyUnicode_CompareWithASCIIString(...) { return 0; }
 int PyUnicode_FromFormat(...) { return 0; }
 int PyUnicode_FromString(...) { return 0; }
 int PyUnicode_FromStringAndSize(...) { return 0; }
@@ -354,20 +393,33 @@ int PyUnicode_GetSize(...) { return 0; }
 int PyUnicode_InternFromString(...) { return 0; }
 int PyUnicode_InternInPlace(...) { return 0; }
 int PyUnicode_Type(...) { return 0; }
+int Py_GetVersion(...) { return 0; }
 int Py_BuildValue(...) { return 0; }
 int Py_InitModule4(...) { return 0; }
 int Py_InitModule4_64(...) { return 0; }
 int Py_InitModule4TraceRefs(...) { return 0; };
+int Py_InitModule4TraceRefs_64(...) { return 0; };
 int _PyArg_ParseTuple_SizeT(...) { return 0; };
 int _PyArg_ParseTupleAndKeywords_SizeT(...) { return 0; };
 int _PyArg_Parse_SizeT(...) { return 0; };
+int _PyErr_BadInternalCall(...) { return 0; };
+int _PyLong_AsByteArray(...) { return 0; };
 int _PyObject_CallFunction_SizeT(...) { return 0; };
 int _PyObject_CallMethod_SizeT(...) { return 0; };
 int _PyObject_DebugFree(...) { return 0; };
 int _PyObject_Del(...) { return 0; };
+int _PyObject_FastCallDict(...) { return 0; };
+int _PyUnicode_AsString(...) { return 0; };
+int _PyUnicode_AsStringAndSize(...) { return 0; };
+int _PyUnicode_EqualToASCIIString(...) { return 0; };
+int _Py_AddToAllObjects(...) { return 0; };
 int _Py_BuildValue_SizeT(...) { return 0; };
 int _Py_Dealloc(...) { return 0; };
+int _Py_ForgetReference(...) { return 0; };
 int _Py_NegativeRefcount(...) { return 0; };
+int _Py_NewReference(...) { return 0; };
+int _Py_PrintReferenceAddresses(...) { return 0; };
+int _Py_PrintReferences(...) { return 0; };
 int _Py_RefTotal(...) { return 0; };
 
 // We actually might call this one.
@@ -375,6 +427,8 @@ void Py_Initialize() {
 }
 int Py_IsInitialized() {
   return 0;
+}
+void PyEval_InitThreads() {
 }
 
 
@@ -384,7 +438,10 @@ void *PyExc_BufferError = (void *)NULL;
 void *PyExc_ConnectionError = (void *)NULL;
 void *PyExc_Exception = (void *)NULL;
 void *PyExc_FutureWarning = (void *)NULL;
+void *PyExc_ImportError = (void *)NULL;
 void *PyExc_IndexError = (void *)NULL;
+void *PyExc_OSError = (void *)NULL;
+void *PyExc_OverflowError = (void *)NULL;
 void *PyExc_RuntimeError = (void *)NULL;
 void *PyExc_StandardError = (void *)NULL;
 void *PyExc_StopIteration = (void *)NULL;

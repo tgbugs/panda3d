@@ -1,26 +1,24 @@
-// Filename: httpClient.h
-// Created by:  drose (24Sep02)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file httpClient.h
+ * @author drose
+ * @date 2002-09-24
+ */
 
 #ifndef HTTPCLIENT_H
 #define HTTPCLIENT_H
 
 #include "pandabase.h"
 
-// This module requires OpenSSL to compile, even if you do not intend
-// to use this to establish https connections; this is because it uses
-// the OpenSSL library to portably handle all of the socket
-// communications.
+// This module requires OpenSSL to compile, even if you do not intend to use
+// this to establish https connections; this is because it uses the OpenSSL
+// library to portably handle all of the socket communications.
 
 #ifdef HAVE_OPENSSL
 
@@ -34,26 +32,27 @@
 #include "pmap.h"
 #include "pset.h"
 #include "referenceCount.h"
-#include "openSSLWrapper.h"
+
+typedef struct ssl_ctx_st SSL_CTX;
+typedef struct x509_st X509;
+typedef struct X509_name_st X509_NAME;
+typedef struct evp_pkey_st EVP_PKEY;
 
 class Filename;
 class HTTPChannel;
 
-////////////////////////////////////////////////////////////////////
-//       Class : HTTPClient
-// Description : Handles contacting an HTTP server and retrieving a
-//               document.  Each HTTPClient object represents a
-//               separate context, and stores its own list of cookies,
-//               passwords, and certificates; however, a given
-//               HTTPClient is capable of making multiple simultaneous
-//               requests to the same or different servers.
-//
-//               It is up to the programmer whether one HTTPClient
-//               should be used to retrieve all documents, or a
-//               separate one should be created each time.  There is a
-//               default, global HTTPClient available in
-//               HTTPClient::get_global_ptr().
-////////////////////////////////////////////////////////////////////
+/**
+ * Handles contacting an HTTP server and retrieving a document.  Each
+ * HTTPClient object represents a separate context, and stores its own list of
+ * cookies, passwords, and certificates; however, a given HTTPClient is
+ * capable of making multiple simultaneous requests to the same or different
+ * servers.
+ *
+ * It is up to the programmer whether one HTTPClient should be used to
+ * retrieve all documents, or a separate one should be created each time.
+ * There is a default, global HTTPClient available in
+ * HTTPClient::get_global_ptr().
+ */
 class EXPCL_PANDAEXPRESS HTTPClient : public ReferenceCount {
 PUBLISHED:
   HTTPClient();
@@ -91,7 +90,7 @@ PUBLISHED:
 
   void write_cookies(ostream &out) const;
   void send_cookies(ostream &out, const URLSpec &url);
-  
+
   INLINE void set_client_certificate_filename(const Filename &filename);
   INLINE void set_client_certificate_pem(const string &pem);
   INLINE void set_client_certificate_passphrase(const string &passphrase);
@@ -141,11 +140,11 @@ private:
   void check_preapproved_server_certificate(const URLSpec &url, X509 *cert,
                                             bool &cert_preapproved, bool &cert_name_preapproved) const;
 
-  bool get_proxies_for_scheme(const string &scheme, 
+  bool get_proxies_for_scheme(const string &scheme,
                               pvector<URLSpec> &proxies) const;
 
   void add_http_username(const string &http_username);
-  string select_username(const URLSpec &url, bool is_proxy, 
+  string select_username(const URLSpec &url, bool is_proxy,
                          const string &realm) const;
 
   HTTPAuthorization *select_auth(const URLSpec &url, bool is_proxy,
@@ -159,12 +158,6 @@ private:
   static bool x509_name_subset(X509_NAME *name_a, X509_NAME *name_b);
 
   static void split_whitespace(string &a, string &b, const string &c);
-
-#if defined(SSL_097) && !defined(NDEBUG)
-  static void ssl_msg_callback(int write_p, int version, int content_type,
-                               const void *buf, size_t len, SSL *ssl,
-                               void *arg);
-#endif
 
   typedef pvector<URLSpec> Proxies;
   typedef pmap<string, Proxies> ProxiesByScheme;
@@ -224,4 +217,3 @@ private:
 #endif  // HAVE_OPENSSL
 
 #endif
-  

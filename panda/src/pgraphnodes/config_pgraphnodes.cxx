@@ -1,16 +1,15 @@
-// Filename: config_pgraphnodes.cxx
-// Created by:  drose (05Nov08)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file config_pgraphnodes.cxx
+ * @author drose
+ * @date 2008-11-05
+ */
 
 #include "config_pgraphnodes.h"
 
@@ -27,9 +26,11 @@
 #include "lodNode.h"
 #include "nodeCullCallbackData.h"
 #include "pointLight.h"
+#include "rectangleLight.h"
 #include "selectiveChildNode.h"
 #include "sequenceNode.h"
 #include "shaderGenerator.h"
+#include "sphereLight.h"
 #include "spotlight.h"
 #include "switchNode.h"
 #include "uvScrollNode.h"
@@ -94,14 +95,12 @@ ConfigVariableDouble parallax_mapping_scale
           "how much influence the height values have on the texture "
           "coordinates."));
 
-////////////////////////////////////////////////////////////////////
-//     Function: init_libpgraphnodes
-//  Description: Initializes the library.  This must be called at
-//               least once before any of the functions or classes in
-//               this library can be used.  Normally it will be
-//               called by the static initializers and need not be
-//               called explicitly, but special cases exist.
-////////////////////////////////////////////////////////////////////
+/**
+ * Initializes the library.  This must be called at least once before any of
+ * the functions or classes in this library can be used.  Normally it will be
+ * called by the static initializers and need not be called explicitly, but
+ * special cases exist.
+ */
 void
 init_libpgraphnodes() {
   static bool initialized = false;
@@ -123,9 +122,11 @@ init_libpgraphnodes() {
   LODNode::init_type();
   NodeCullCallbackData::init_type();
   PointLight::init_type();
+  RectangleLight::init_type();
   SelectiveChildNode::init_type();
   SequenceNode::init_type();
   ShaderGenerator::init_type();
+  SphereLight::init_type();
   Spotlight::init_type();
   SwitchNode::init_type();
   UvScrollNode::init_type();
@@ -138,8 +139,10 @@ init_libpgraphnodes() {
   LightNode::register_with_read_factory();
   LODNode::register_with_read_factory();
   PointLight::register_with_read_factory();
+  RectangleLight::register_with_read_factory();
   SelectiveChildNode::register_with_read_factory();
   SequenceNode::register_with_read_factory();
+  SphereLight::register_with_read_factory();
   Spotlight::register_with_read_factory();
   SwitchNode::register_with_read_factory();
   UvScrollNode::register_with_read_factory();

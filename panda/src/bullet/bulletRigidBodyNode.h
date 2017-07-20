@@ -1,16 +1,15 @@
-// Filename: bulletRigidBodyNode.h
-// Created by:  enn0x (19Nov10)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file bulletRigidBodyNode.h
+ * @author enn0x
+ * @date 2010-11-19
+ */
 
 #ifndef __BULLET_RIGID_BODY_NODE_H__
 #define __BULLET_RIGID_BODY_NODE_H__
@@ -26,10 +25,9 @@
 
 class BulletShape;
 
-////////////////////////////////////////////////////////////////////
-//       Class : BulletRigidBodyNode
-// Description : 
-////////////////////////////////////////////////////////////////////
+/**
+ *
+ */
 class EXPCL_PANDABULLET BulletRigidBodyNode : public BulletBodyNode {
 
 PUBLISHED:
@@ -88,6 +86,23 @@ PUBLISHED:
   // Special
   bool pick_dirty_flag();
 
+  MAKE_PROPERTY(mass, get_mass, set_mass);
+  MAKE_PROPERTY(inv_mass, get_inv_mass);
+  MAKE_PROPERTY(inertia, get_inertia, set_inertia);
+  MAKE_PROPERTY(inv_inertia_diag_local, get_inv_inertia_diag_local);
+  MAKE_PROPERTY(inv_inertia_tensor_world, get_inv_inertia_tensor_world);
+  MAKE_PROPERTY(linear_velocity, get_linear_velocity, set_linear_velocity);
+  MAKE_PROPERTY(angular_velocity, get_angular_velocity, set_angular_velocity);
+  MAKE_PROPERTY(linear_damping, get_linear_damping, set_linear_damping);
+  MAKE_PROPERTY(angular_damping, get_angular_damping, set_angular_damping);
+  MAKE_PROPERTY(total_force, get_total_force);
+  MAKE_PROPERTY(total_torque, get_total_torque);
+  MAKE_PROPERTY(linear_sleep_threshold, get_linear_sleep_threshold, set_linear_sleep_threshold);
+  MAKE_PROPERTY(angular_sleep_threshold, get_angular_sleep_threshold, set_angular_sleep_threshold);
+  MAKE_PROPERTY(gravity, get_gravity, set_gravity);
+  MAKE_PROPERTY(linear_factor, get_linear_factor, set_linear_factor);
+  MAKE_PROPERTY(angular_factor, get_angular_factor, set_angular_factor);
+
 public:
   virtual btCollisionObject *get_object() const;
 
@@ -102,8 +117,8 @@ protected:
 private:
   virtual void shape_changed();
 
-  // The motion state is used for synchronisation between Bullet
-  // and the Panda3D scene graph.
+  // The motion state is used for synchronisation between Bullet and the
+  // Panda3D scene graph.
   class MotionState : public btMotionState {
 
   public:
@@ -126,14 +141,16 @@ private:
     bool _was_dirty;
   };
 
-  MotionState *_motion;
+  MotionState _motion;
   btRigidBody *_rigid;
 
 public:
   static void register_with_read_factory();
   virtual void write_datagram(BamWriter *manager, Datagram &dg);
+  virtual PandaNode *make_copy() const;
 
 protected:
+  BulletRigidBodyNode(const BulletRigidBodyNode &copy);
   static TypedWritable *make_from_bam(const FactoryParams &params);
   void fillin(DatagramIterator &scan, BamReader *manager);
 
@@ -143,7 +160,7 @@ public:
   }
   static void init_type() {
     BulletBodyNode::init_type();
-    register_type(_type_handle, "BulletRigidBodyNode", 
+    register_type(_type_handle, "BulletRigidBodyNode",
                   BulletBodyNode::get_class_type());
   }
   virtual TypeHandle get_type() const {
@@ -161,4 +178,3 @@ private:
 #include "bulletRigidBodyNode.I"
 
 #endif // __BULLET_RIGID_BODY_NODE_H__
-

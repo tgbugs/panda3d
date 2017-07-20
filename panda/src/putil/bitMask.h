@@ -1,16 +1,15 @@
-// Filename: bitMask.h
-// Created by:  drose (08Jun00)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file bitMask.h
+ * @author drose
+ * @date 2000-06-08
+ */
 
 #ifndef BITMASK_H
 #define BITMASK_H
@@ -25,12 +24,10 @@
 #include "checksumHashGenerator.h"
 
 
-////////////////////////////////////////////////////////////////////
-//       Class : BitMask
-// Description : A general bitmask class.  This stores an array of
-//               bits of some length that must fit within a given word
-//               of the indicated type.  See also BitArray.
-////////////////////////////////////////////////////////////////////
+/**
+ * A general bitmask class.  This stores an array of bits of some length that
+ * must fit within a given word of the indicated type.  See also BitArray.
+ */
 template<class WType, int nbits>
 class BitMask {
 public:
@@ -41,16 +38,12 @@ PUBLISHED:
 
   INLINE BitMask();
   INLINE BitMask(WordType init_value);
-  INLINE BitMask(const BitMask<WType, nbits> &copy);
-  INLINE BitMask<WType, nbits> &operator = (const BitMask<WType, nbits> &copy);
 
   INLINE static BitMask<WType, nbits> all_on();
   INLINE static BitMask<WType, nbits> all_off();
   INLINE static BitMask<WType, nbits> lower_on(int on_bits);
   INLINE static BitMask<WType, nbits> bit(int index);
   INLINE static BitMask<WType, nbits> range(int low_bit, int size);
-
-  INLINE ~BitMask();
 
   CONSTEXPR static bool has_max_num_bits();
   CONSTEXPR static int get_max_num_bits();
@@ -160,16 +153,16 @@ INLINE ostream &operator << (ostream &out, const BitMask<WType, nbits> &bitmask)
 
 // We need to define this temporary macro so we can pass a parameter
 // containing a comma through the macro.
-#define BITMASK16_DEF BitMask<PN_uint16, 16>
-#define BITMASK32_DEF BitMask<PN_uint32, 32>
-#define BITMASK64_DEF BitMask<PN_uint64, 64>
+#define BITMASK16_DEF BitMask<uint16_t, 16>
+#define BITMASK32_DEF BitMask<uint32_t, 32>
+#define BITMASK64_DEF BitMask<uint64_t, 64>
 EXPORT_TEMPLATE_CLASS(EXPCL_PANDA_PUTIL, EXPTP_PANDA_PUTIL, BITMASK16_DEF);
 EXPORT_TEMPLATE_CLASS(EXPCL_PANDA_PUTIL, EXPTP_PANDA_PUTIL, BITMASK32_DEF);
 EXPORT_TEMPLATE_CLASS(EXPCL_PANDA_PUTIL, EXPTP_PANDA_PUTIL, BITMASK64_DEF);
 
-typedef BitMask<PN_uint16, 16> BitMask16;
-typedef BitMask<PN_uint32, 32> BitMask32;
-typedef BitMask<PN_uint64, 64> BitMask64;
+typedef BitMask<uint16_t, 16> BitMask16;
+typedef BitMask<uint32_t, 32> BitMask32;
+typedef BitMask<uint64_t, 64> BitMask64;
 
 #if NATIVE_WORDSIZE == 32
 typedef BitMask32 BitMaskNative;

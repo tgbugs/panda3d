@@ -1,16 +1,15 @@
-// Filename: bulletRotationalLimitMotor.h
-// Created by:  enn0x (03Mar13)
-//
-////////////////////////////////////////////////////////////////////
-//
-// PANDA 3D SOFTWARE
-// Copyright (c) Carnegie Mellon University.  All rights reserved.
-//
-// All use of this software is subject to the terms of the revised BSD
-// license.  You should have received a copy of this license along
-// with this source code in a file named "LICENSE."
-//
-////////////////////////////////////////////////////////////////////
+/**
+ * PANDA 3D SOFTWARE
+ * Copyright (c) Carnegie Mellon University.  All rights reserved.
+ *
+ * All use of this software is subject to the terms of the revised BSD
+ * license.  You should have received a copy of this license along
+ * with this source code in a file named "LICENSE."
+ *
+ * @file bulletRotationalLimitMotor.h
+ * @author enn0x
+ * @date 2013-03-03
+ */
 
 #ifndef __BULLET_ROTATIONAL_LIMIT_MOTOR_H__
 #define __BULLET_ROTATIONAL_LIMIT_MOTOR_H__
@@ -22,10 +21,9 @@
 
 #include "luse.h"
 
-////////////////////////////////////////////////////////////////////
-//       Class : BulletRotationalLimitMotor
-// Description : Rotation Limit structure for generic joints.
-////////////////////////////////////////////////////////////////////
+/**
+ * Rotation Limit structure for generic joints.
+ */
 class EXPCL_PANDABULLET BulletRotationalLimitMotor {
 
 PUBLISHED:
@@ -51,6 +49,13 @@ PUBLISHED:
   INLINE PN_stdfloat get_current_error() const;
   INLINE PN_stdfloat get_current_position() const;
   INLINE PN_stdfloat get_accumulated_impulse() const;
+
+  MAKE_PROPERTY(limited, is_limited);
+  MAKE_PROPERTY(motor_enabled, get_motor_enabled, set_motor_enabled);
+  MAKE_PROPERTY(current_limit, get_current_limit);
+  MAKE_PROPERTY(current_error, get_current_error);
+  MAKE_PROPERTY(current_position, get_current_position);
+  MAKE_PROPERTY(accumulated_impulse, get_accumulated_impulse);
 
 public:
   BulletRotationalLimitMotor(btRotationalLimitMotor &motor);

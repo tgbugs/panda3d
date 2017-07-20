@@ -1,11 +1,11 @@
-"""Undocumented Module"""
+"""Contains the DirectScrolledFrame class."""
 
 __all__ = ['DirectScrolledFrame']
 
 from panda3d.core import *
-import DirectGuiGlobals as DGG
-from DirectFrame import *
-from DirectScrollBar import *
+from . import DirectGuiGlobals as DGG
+from .DirectFrame import *
+from .DirectScrollBar import *
 
 """
 import DirectScrolledFrame
@@ -87,7 +87,7 @@ class DirectScrolledFrame(DirectFrame):
 
     def commandFunc(self):
         if self['command']:
-            apply(self['command'], self['extraArgs'])
+            self['command'](*self['extraArgs'])
 
     def destroy(self):
         # Destroy children of the canvas

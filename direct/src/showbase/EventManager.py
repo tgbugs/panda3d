@@ -1,21 +1,19 @@
-"""Undocumented Module"""
+"""Contains the EventManager class.  See :mod:`.EventManagerGlobal` for the
+global eventMgr instance."""
 
 __all__ = ['EventManager']
 
 
-from MessengerGlobal import *
+from .MessengerGlobal import *
 from direct.directnotify.DirectNotifyGlobal import *
 from direct.task.TaskManagerGlobal import taskMgr
 from panda3d.core import PStatCollector, EventQueue, EventHandler
+from panda3d.core import ConfigVariableBool
 
 class EventManager:
 
     notify = None
 
-    # delayed import, since this is imported by the Toontown Launcher
-    # before the complete PandaModules have been downloaded.
-    PStatCollector = None
-    
     def __init__(self, eventQueue = None):
         """
         Create a C++ event queue and handler
@@ -27,15 +25,12 @@ class EventManager:
         self.eventQueue = eventQueue
         self.eventHandler = None
 
-        self._wantPstats = None # no config at this point
+        self._wantPstats = ConfigVariableBool('pstats-eventmanager', False)
 
     def doEvents(self):
         """
         Process all the events on the C++ event queue
         """
-        if self._wantPstats is None:
-            self._wantPstats = config.GetBool('pstats-eventmanager', 0)
-            EventManager.PStatCollector = PStatCollector
         # use different methods for handling events with and without pstats tracking
         # for efficiency
         if self._wantPstats:
@@ -73,7 +68,7 @@ class EventManager:
             # Must be some user defined type, return the ptr
             # which will be downcast to that type.
             return eventParameter.getPtr()
-        
+
     def processEvent(self, event):
         """
         Process a C++ event
@@ -97,7 +92,7 @@ class EventManager:
             # **************************************************************
             # ******** Duplicate any changes in processEventPstats *********
             # **************************************************************
-            # Send the event, we used to send it with the event 
+            # Send the event, we used to send it with the event
             # name as a parameter, but now you can use extraArgs for that
             if paramList:
                 messenger.send(eventName, paramList)
@@ -106,7 +101,7 @@ class EventManager:
             # Also send the event down into C++ land
             if self.eventHandler:
                 self.eventHandler.dispatchEvent(event)
-            
+
         else:
             # An unnamed event from C++ is probably a bad thing
             EventManager.notify.warning('unnamed event in processEvent')
@@ -131,7 +126,7 @@ class EventManager:
             if (EventManager.notify.getDebug() and eventName != 'NewFrame'):
                 EventManager.notify.debug('received C++ event named: ' + eventName +
                                           ' parameters: ' + repr(paramList))
-            # Send the event, we used to send it with the event 
+            # Send the event, we used to send it with the event
             # name as a parameter, but now you can use extraArgs for that
             # ********************************************************
             # ******** Duplicate any changes in processEvent *********
@@ -141,10 +136,10 @@ class EventManager:
                 hyphen = name.find('-')
                 if hyphen >= 0:
                     name = name[0:hyphen]
-                pstatCollector = EventManager.PStatCollector('App:Show code:eventManager:' + name)
+                pstatCollector = PStatCollector('App:Show code:eventManager:' + name)
                 pstatCollector.start()
                 if self.eventHandler:
-                    cppPstatCollector = EventManager.PStatCollector(
+                    cppPstatCollector = PStatCollector(
                         'App:Show code:eventManager:' + name + ':C++')
 
             if paramList:
@@ -164,7 +159,7 @@ class EventManager:
                 if self.eventHandler:
                     cppPstatCollector.stop()
                 pstatCollector.stop()
-            
+
         else:
             # An unnamed event from C++ is probably a bad thing
             EventManager.notify.warning('unnamed event in processEvent')
